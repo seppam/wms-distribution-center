@@ -1,0 +1,303 @@
+{
+  "info": {
+    "name": "WMS Distribution Center API",
+    "description": "Warehouse Management System API - Distribution Center case study",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5243/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.collectionVariables.set('userRole', jsonData.user.role);",
+                  "}",
+                  "pm.test('Login successful', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Token received', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "header": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET /products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&pageSize=20",
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "pageSize", "value": "20"},
+                {"key": "search", "value": "", "disabled": true}
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /products",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/products",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sku\": \"SI-TEST-001\",\n    \"name\": \"Test Product\",\n    \"weightKg\": 1.5,\n    \"volumeM3\": 0.005,\n    \"barcode\": \"1234567890123\",\n    \"minStock\": 10,\n    \"maxStock\": 1000,\n    \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /products/search",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products/search?q=test",
+              "query": [
+                {"key": "q", "value": "test"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "GET /inventory/summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/inventory/summary",
+            "header": []
+          }
+        },
+        {
+          "name": "POST /inventory/adjustments",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/inventory/adjustments",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productId\": \"{{productId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"adjType\": \"Positive\",\n    \"adjQty\": 5,\n    \"reason\": \"Cycle count adjustment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /inventory/transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory/transactions?page=1&pageSize=20",
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "pageSize", "value": "20"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inbound",
+      "item": [
+        {
+          "name": "GET /inbound",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inbound?page=1&pageSize=20",
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "pageSize", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /inbound",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/inbound",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplierId\": \"{{supplierId}}\",\n    \"warehouseId\": \"{{warehouseId}}\",\n    \"poNumber\": \"PO-TEST-001\",\n    \"expectedDate\": \"2026-06-20\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Outbound",
+      "item": [
+        {
+          "name": "GET /outbound",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/outbound?page=1&pageSize=20",
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "pageSize", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /outbound",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/outbound",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"warehouseId\": \"{{warehouseId}}\",\n    \"orderType\": \"Sales\",\n    \"priority\": \"Normal\",\n    \"destination\": \"Store #001 - Test Location\",\n    \"dueDate\": \"2026-06-20\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "GET /reports/dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/dashboard"
+          }
+        },
+        {
+          "name": "GET /reports/inbound-summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/inbound-summary"
+          }
+        },
+        {
+          "name": "GET /reports/outbound-summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/outbound-summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master Data",
+      "item": [
+        {
+          "name": "GET /warehouses",
+          "request": { "method": "GET", "url": "{{baseUrl}}/warehouses" }
+        },
+        {
+          "name": "GET /zones",
+          "request": { "method": "GET", "url": "{{baseUrl}}/zones" }
+        },
+        {
+          "name": "GET /locations",
+          "request": { "method": "GET", "url": "{{baseUrl}}/locations" }
+        },
+        {
+          "name": "GET /categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories" }
+        },
+        {
+          "name": "GET /categories/tree",
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories/tree" }
+        },
+        {
+          "name": "GET /suppliers",
+          "request": { "method": "GET", "url": "{{baseUrl}}/suppliers" }
+        },
+        {
+          "name": "GET /carriers",
+          "request": { "method": "GET", "url": "{{baseUrl}}/carriers" }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "GET /users",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users" }
+        },
+        {
+          "name": "GET /roles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/roles" }
+        }
+      ]
+    }
+  ]
+}

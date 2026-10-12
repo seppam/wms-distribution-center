@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>WMS Distribution Center - Entity Relationship Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    background: #0f172a; 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #e2e8f0;
+    padding: 20px;
+    overflow-x: auto;
+  }
+  h1 { 
+    text-align: center; 
+    color: #38bdf8; 
+    font-size: 26px; 
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .table-box {
+    background: #1e293b;
+    border-radius: 10px;
+    min-width: 260px;
+    width: 280px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 1px solid #334155;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .table-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(56,189,248,0.15);
+    border-color: #38bdf8;
+  }
+  .table-header {
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid;
+  }
+  /* Color coding by module */
+  .mod-core .table-header { background: #7c3aed; border-color: #7c3aed; }   /* Purple - Core */
+  .mod-master .table-header { background: #0891b2; border-color: #0891b2; }  /* Cyan - Master Data */
+  .mod-inventory .table-header { background: #059669; border-color: #059669; } /* Green - Inventory */
+  .mod-inbound .table-header { background: #d97706; border-color: #d97706; }   /* Amber - Inbound */
+  .mod-outbound .table-header { background: #dc2626; border-color: #dc2626; }  /* Red - Outbound */
+  .mod-ops .table-header { background: #4f46e5; border-color: #4f46e5; }      /* Indigo - Operations */
+  .mod-audit .table-header { background: #64748b; border-color: #64748b; }   /* Slate - Audit */
+
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 14px;
+    font-size: 11.5px;
+    border-bottom: 1px solid #1e293b;
+    transition: background 0.15s;
+  }
+  .field-row:hover { background: rgba(56,189,248,0.08); }
+  .field-row:last-child { border-bottom: none; }
+  .field-name { color: #94a3b8; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 10.5px; }
+  .field-type { color: #cbd5e1; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 10px; }
+  .pk { color: #fbbf24; font-weight: 700; }
+  .fk { color: #f472b6; font-weight: 600; }
+  .pk-dot::before { content: '🔑'; margin-right: 4px; font-size: 9px; }
+  .fk-dot::before { content: '🔗'; margin-right: 4px; font-size: 9px; }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 28px 0 10px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .legend-color {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+  }
+  .relations-section {
+    max-width: 1200px;
+    margin: 20px auto;
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 18px 22px;
+    border: 1px solid #334155;
+  }
+  .relations-section h2 {
+    color: #38bdf8;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .relation-item {
+    font-size: 11.5px;
+    color: #94a3b8;
+    padding: 4px 0;
+    border-bottom: 1px solid #273548;
+    font-family: 'SF Mono', monospace;
+  }
+  .relation-item:last-child { border-bottom: none; }
+  .r-from { color: #38bdf8; }
+  .r-to { color: #a78bfa; }
+  .r-arrow { color: #64748b; margin: 0 6px; }
+  
+  .flow-section {
+    max-width: 1200px;
+    margin: 20px auto;
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 18px 22px;
+    border: 1px solid #334155;
+  }
+  .flow-section h2 {
+    color: #34d399;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 12px;
+  }
+  .flow-num {
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .flow-text { color: #cbd5e1; }
+  .flow-tables { color: #38bdf8; font-family: 'SF Mono', monospace; font-size: 10.5px; }
+  .flow-arrow-down {
+    text-align: center;
+    color: #475569;
+    font-size: 16px;
+    margin: 2px 0;
+    margin-left: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🏭 WMS Distribution Center — Database Schema (ERD)</h1>
+<p class="subtitle">Warehouse Management System for a Distribution Center &middot; PostgreSQL &middot; 25 Tables &middot; Full RBAC</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-color" style="background:#7c3aed"></div> Core / Auth</div>
+  <div class="legend-item"><div class="legend-color" style="background:#0891b2"></div> Master Data</div>
+  <div class="legend-item"><div class="legend-color" style="background:#059669"></div> Inventory</div>
+  <div class="legend-item"><div class="legend-color" style="background:#d97706"></div> Inbound</div>
+  <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div> Outbound</div>
+  <div class="legend-item"><div class="legend-color" style="background:#4f46e5"></div> Operations</div>
+  <div class="legend-item"><div class="legend-color" style="background:#64748b"></div> Audit</div>
+  <div class="legend-item">🔑 Primary Key (PK)</div>
+  <div class="legend-item">🔗 Foreign Key (FK)</div>
+</div>
+
+<!-- ==================== TABLES ==================== -->
+<div class="container">
+
+  <!-- USERS -->
+  <div class="table-box mod-core">
+    <div class="table-header">👤 users</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">username</span><span class="field-type">VARCHAR(50) UQ</span></div>
+    <div class="field-row"><span class="field-name">email</span><span class="field-type">VARCHAR(255) UQ</span></div>
+    <div class="field-row"><span class="field-name">password_hash</span><span class="field-type">VARCHAR(255)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">role_id</span><span class="field-type">UUID → roles.id</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">warehouse_id</span><span class="field-type">UUID → warehouses.id</span></div>
+    <div class="field-row"><span class="field-name">full_name</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">phone</span><span class="field-type">VARCHAR(20)</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+    <div class="field-row"><span class="field-name">last_login</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">updated_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- ROLES -->
+  <div class="table-box mod-core">
+    <div class="table-header">🛡️ roles</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(50) UQ</span></div>
+    <div class="field-row"><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">permissions</span><span class="field-type">JSONB</span></div>
+    <div class="field-row"><span class="field-name">is_system</span><span class="field-type">BOOLEAN DFLT false</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- WAREHOUSES -->
+  <div class="table-box mod-master">
+    <div class="table-header">🏢 warehouses</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">code</span><span class="field-type">VARCHAR(20) UQ</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">address</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">city</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">capacity</span><span class="field-type">DECIMAL(15,2)</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- ZONES -->
+  <div class="table-box mod-master">
+    <div class="table-header">📦 zones</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">warehouse_id</span><span class="field-type">UUID → warehouses</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">zone_type</span><span class="field-type">ENUM(receiving/storage/packing/shipping/returns/staging)</span></div>
+    <div class="field-row"><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+  </div>
+
+  <!-- LOCATIONS -->
+  <div class="table-box mod-master">
+    <div class="table-header">📍 locations</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">zone_id</span><span class="field-type">UUID → zones</span></div>
+    <div class="field-row"><span class="field-name">location_code</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row"><span class="field-name">aisle</span><span class="field-type">VARCHAR(10)</span></div>
+    <div class="field-row"><span class="field-name">rack</span><span class="field-type">VARCHAR(10)</span></div>
+    <div class="field-row"><span class="field-name">level</span><span class="field-type">VARCHAR(5)</span></div>
+    <div class="field-row"><span class="field-name">bin</span><span class="field-type">VARCHAR(10)</span></div>
+    <div class="field-row"><span class="field-name">location_type</span><span class="field-type">ENUM(pick/floor/bulk/reserved/damage)</span></div>
+    <div class="field-row"><span class="field-name">max_capacity</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(empty/occupied/partial/locked)</span></div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="table-box mod-master">
+    <div class="table-header">📋 products</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">sku</span><span class="field-type">VARCHAR(50) UQ</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(200)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">category_id</span><span class="field-type">UUID → categories</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">uom_id</span><span class="field-type">UUID → uoms</span></div>
+    <div class="field-row"><span class="field-name">weight_kg</span><span class="field-type">DECIMAL(10,3)</span></div>
+    <div class="field-row"><span class="field-name">volume_m3</span><span class="field-type">DECIMAL(10,4)</span></div>
+    <div class="field-row"><span class="field-name">barcode</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">min_stock</span><span class="field-type">INT DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">max_stock</span><span class="field-type">INT</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="table-box mod-master">
+    <div class="table-header">📂 categories</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">parent_id</span><span class="field-type">UUID → categories(self)</span></div>
+    <div class="field-row"><span class="field-name">level</span><span class="field-type">INT</span></div>
+    <div class="field-row"><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+  </div>
+
+  <!-- UOMS -->
+  <div class="table-box mod-master">
+    <div class="table-header">📐 uoms</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">code</span><span class="field-type">VARCHAR(10) UQ</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">base_uom_id</span><span class="field-type">UUID → uoms(self)</span></div>
+    <div class="field-row"><span class="field-name">conversion_factor</span><span class="field-type">DECIMAL(10,4)</span></div>
+    <div class="field-row"><span class="field-name">is_base</span><span class="field-type">BOOLEAN</span></div>
+  </div>
+
+  <!-- SUPPLIERS -->
+  <div class="table-box mod-master">
+    <div class="table-header">🏭 suppliers</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">code</span><span class="field-type">VARCHAR(20) UQ</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(150)</span></div>
+    <div class="field-row"><span class="field-name">contact_person</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">email</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">phone</span><span class="field-type">VARCHAR(20)</span></div>
+    <div class="field-row"><span class="field-name">address</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+  </div>
+
+  <!-- CARRIERS -->
+  <div class="table-box mod-master">
+    <div class="table-header">🚚 carriers</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">contact_person</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">phone</span><span class="field-type">VARCHAR(20)</span></div>
+    <div class="field-row"><span class="field-name">email</span><span class="field-type">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">vehicle_type</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">is_active</span><span class="field-type">BOOLEAN DFLT true</span></div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="table-box mod-inventory">
+    <div class="table-header">📊 inventory</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row"><span class="field-name">qty_on_hand</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">qty_reserved</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">qty_available</span><span class="field-type">GENERATED (on_hand - reserved)</span></div>
+    <div class="field-row"><span class="field-name">lot_number</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">expiry_date</span><span class="field-type">DATE</span></div>
+    <div class="field-row"><span class="field-name">unit_cost</span><span class="field-type">DECIMAL(15,2)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(available/reserved/hold/damaged/expired)</span></div>
+    <div class="field-row"><span class="field-name">last_counted_date</span><span class="field-type">DATE</span></div>
+  </div>
+
+  <!-- INVENTORY TRANSACTIONS -->
+  <div class="table-box mod-inventory">
+    <div class="table-header">📝 inventory_transactions</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">BIGSERIAL</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row"><span class="field-name">reference_type</span><span class="field-type">ENUM(inbound/outbound/adjustment/transfer/return)</span></div>
+    <div class="field-row"><span class="field-name">reference_id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">transaction_type</span><span class="field-type">ENUM(in/out/adjust)</span></div>
+    <div class="field-row"><span class="field-name">qty_before</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">qty_after</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">uom_qty</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">user_id</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">lot_number</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">notes</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP DFLT NOW</span></div>
+  </div>
+
+  <!-- INBOUND RECEIPTS -->
+  <div class="table-box mod-inbound">
+    <div class="table-header">📥 inbound_receipts</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">receipt_no</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">supplier_id</span><span class="field-type">UUID → suppliers</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">warehouse_id</span><span class="field-type">UUID → warehouses</span></div>
+    <div class="field-row"><span class="field-name">po_number</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">asn_number</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(draft/in_progress/received/partial/cancelled)</span></div>
+    <div class="field-row"><span class="field-name">expected_date</span><span class="field-type">DATE</span></div>
+    <div class="field-row"><span class="field-name">received_date</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">received_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">dock_door</span><span class="field-type">VARCHAR(10)</span></div>
+    <div class="field-row"><span class="field-name">notes</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- RECEIPT ITEMS -->
+  <div class="table-box mod-inbound">
+    <div class="table-header">📦 receipt_items</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">receipt_id</span><span class="field-type">UUID → inbound_receipts</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row"><span class="field-name">expected_qty</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">received_qty</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">damaged_qty</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">lot_number</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">expiry_date</span><span class="field-type">DATE</span></div>
+    <div class="field-row"><span class="field-name">unit_cost</span><span class="field-type">DECIMAL(15,2)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(pending/received/damaged/shortage)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">putaway_location_id</span><span class="field-type">UUID → locations</span></div>
+  </div>
+
+  <!-- OUTBOUND ORDERS -->
+  <div class="table-box mod-outbound">
+    <div class="table-header">📤 outbound_orders</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">order_number</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">warehouse_id</span><span class="field-type">UUID → warehouses</span></div>
+    <div class="field-row"><span class="field-name">order_type</span><span class="field-type">ENUM(sales/transfer/internal/sample)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(draft/picked/packed/shipped/completed/cancelled)</span></div>
+    <div class="field-row"><span class="field-name">priority</span><span class="field-type">ENUM(normal/urgent/rush)</span></div>
+    <div class="field-row"><span class="field-name">destination</span><span class="field-type">VARCHAR(200)</span></div>
+    <div class="field-row"><span class="field-name">requested_date</span><span class="field-type">DATE</span></div>
+    <div class="field-row"><span class="field-name">due_date</span><span class="field-type">DATE</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">created_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">notes</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- ORDER ITEMS -->
+  <div class="table-box mod-outbound">
+    <div class="table-header">🧾 order_items</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">order_id</span><span class="field-type">UUID → outbound_orders</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row"><span class="field-name">ordered_qty</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">picked_qty</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">shipped_qty</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">unit_price</span><span class="field-type">DECIMAL(15,2)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(pending/picked/partial/shipped)</span></div>
+  </div>
+
+  <!-- PICK TASKS -->
+  <div class="table-box mod-outbound">
+    <div class="table-header">🎯 pick_tasks</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">order_item_id</span><span class="field-type">UUID → order_items</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">from_location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row"><span class="field-name">qty_to_pick</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">qty_picked</span><span class="field-type">DECIMAL(15,3) DFLT 0</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(assigned/in_progress/picked/cancelled)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">picker_id</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">assigned_at</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">picked_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- PACK LIST -->
+  <div class="table-box mod-outbound">
+    <div class="table-header">📦 pack_list</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">order_id</span><span class="field-type">UUID → outbound_orders</span></div>
+    <div class="field-row"><span class="field-name">carton_no</span><span class="field-type">VARCHAR(20)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">packed_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">weight_kg</span><span class="field-type">DECIMAL(10,3)</span></div>
+    <div class="field-row"><span class="field-name">packed_at</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(open/sealed/shipped)</span></div>
+  </div>
+
+  <!-- SHIPMENTS -->
+  <div class="table-box mod-outbound">
+    <div class="table-header">🚛 shipments</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">order_id</span><span class="field-type">UUID → outbound_orders</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">carrier_id</span><span class="field-type">UUID → carriers</span></div>
+    <div class="field-row"><span class="field-name">tracking_no</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">bol_number</span><span class="field-type">VARCHAR(30)</span></div>
+    <div class="field-row"><span class="field-name">vehicle_plate</span><span class="field-type">VARCHAR(15)</span></div>
+    <div class="field-row"><span class="field-name">driver_name</span><span class="field-name">VARCHAR(100)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(draft/dispatched/in_transit/delivered/cancelled)</span></div>
+    <div class="field-row"><span class="field-name">shipped_at</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">delivered_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- RETURNS -->
+  <div class="table-box mod-ops">
+    <div class="table-header">↩️ returns</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">return_no</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">order_id</span><span class="field-type">UUID → outbound_orders</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">warehouse_id</span><span class="field-type">UUID → warehouses</span></div>
+    <div class="field-row"><span class="field-name">reason</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">condition</span><span class="field-type">ENUM(good/damaged/expired/wrong_item)</span></div>
+    <div class="field-row"><span class="field-name">disposition</span><span class="field-type">ENUM(restock/refurbish/dispose/write_off)</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(received/inspecting/processed/completed)</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">received_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">received_at</span><span class="field-type">TIMESTAMP</span></div>
+    <div class="field-row"><span class="field-name">notes</span><span class="field-type">TEXT</span></div>
+  </div>
+
+  <!-- ADJUSTMENTS -->
+  <div class="table-box mod-ops">
+    <div class="table-header">⚙️ adjustments</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">adj_number</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row"><span class="field-name">adj_type</span><span class="field-type">ENUM(positive/negative/recount)</span></div>
+    <div class="field-row"><span class="field-name">qty_before</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">adj_qty</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">qty_after</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">reason</span><span class="field-type">TEXT</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">approved_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">created_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(draft/approved/applied/cancelled)</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- TRANSFERS -->
+  <div class="table-box mod-ops">
+    <div class="table-header">🔄 transfers</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">transfer_no</span><span class="field-type">VARCHAR(30) UQ</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">product_id</span><span class="field-type">UUID → products</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">from_location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">to_location_id</span><span class="field-type">UUID → locations</span></div>
+    <div class="field-row"><span class="field-name">qty</span><span class="field-type">DECIMAL(15,3)</span></div>
+    <div class="field-row"><span class="field-name">reason</span><span class="field-type">TEXT</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">requested_by</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">status</span><span class="field-type">ENUM(draft/in_transit/completed/cancelled)</span></div>
+    <div class="field-row"><span class="field-name">transferred_at</span><span class="field-type">TIMESTAMP</span></div>
+  </div>
+
+  <!-- AUDIT LOGS -->
+  <div class="table-box mod-audit">
+    <div class="table-header">📋 audit_logs</div>
+    <div class="field-row pk-dot"><span class="field-name pk">id</span><span class="field-type">BIGSERIAL</span></div>
+    <div class="field-row fk-dot"><span class="field-name fk">user_id</span><span class="field-type">UUID → users</span></div>
+    <div class="field-row"><span class="field-name">action</span><span class="field-type">ENUM(create/update/delete/login/logout/export/print)</span></div>
+    <div class="field-row"><span class="field-name">entity</span><span class="field-type">VARCHAR(50)</span></div>
+    <div class="field-row"><span class="field-name">entity_id</span><span class="field-type">UUID</span></div>
+    <div class="field-row"><span class="field-name">old_values</span><span class="field-type">JSONB</span></div>
+    <div class="field-row"><span class="field-name">new_values</span><span class="field-type">JSONB</span></div>
+    <div class="field-row"><span class="field-name">ip_address</span><span class="field-type">INET</span></div>
+    <div class="field-row"><span class="field-name">user_agent</span><span class="field-type">TEXT</span></div>
+    <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP DFLT NOW</span></div>
+  </div>
+
+</div><!-- end container -->
+
+<!-- RELATIONS -->
+<div class="relations-section">
+  <h2>🔗 Key Relationships (Foreign Keys)</h2>
+  <div class="relation-item"><span class="r-from">users.role_id</span> <span class="r-arrow">──▶</span> <span class="r-to">roles.id</span></div>
+  <div class="relation-item"><span class="r-from">users.warehouse_id</span> <span class="r-arrow">──▶</span> <span class="r-to">warehouses.id</span></div>
+  <div class="relation-item"><span class="r-from">zones.warehouse_id</span> <span class="r-arrow">──▶</span> <span class="r-to">warehouses.id</span></div>
+  <div class="relation-item"><span class="r-from">locations.zone_id</span> <span class="r-arrow">──▶</span> <span class="r-to">zones.id</span></div>
+  <div class="relation-item"><span class="r-from">products.category_id</span> <span class="r-arrow">──▶</span> <span class="r-to">categories.id</span></div>
+  <div class="relation-item"><span class="r-from">products.uom_id</span> <span class="r-arrow">──▶</span> <span class="r-to">uoms.id</span></div>
+  <div class="relation-item"><span class="r-from">categories.parent_id</span> <span class="r-arrow">──▶</span> <span class="r-to">categories.id (self-ref)</span></div>
+  <div class="relation-item"><span class="r-from">inventory.product_id + location_id</span> <span class="r-arrow">──▶</span> <span class="r-to">products.id + locations.id (composite unique)</span></div>
+  <div class="relation-item"><span class="r-from">inbound_receipts.supplier_id</span> <span class="r-arrow">──▶</span> <span class="r-to">suppliers.id</span></div>
+  <div class="relation-item"><span class="r-from">receipt_items.receipt_id</span> <span class="r-arrow">──▶</span> <span class="r-to">inbound_receipts.id</span></div>
+  <div class="relation-item"><span class="r-from">receipt_items.putaway_location_id</span> <span class="r-arrow">──▶</span> <span class="r-to">locations.id</span></div>
+  <div class="relation-item"><span class="r-from">outbound_orders.warehouse_id</span> <span class="r-arrow">──▶</span> <span class="r-to">warehouses.id</span></div>
+  <div class="relation-item"><span class="r-from">order_items.order_id</span> <span class="r-arrow">──▶</span> <span class="r-to">outbound_orders.id</span></div>
+  <div class="relation-item"><span class="r-from">pick_tasks.order_item_id</span> <span class="r-arrow">──▶</span> <span class="r-to">order_items.id</span></div>
+  <div class="relation-item"><span class="r-from">pick_tasks.from_location_id</span> <span class="r-arrow">──▶</span> <span class="r-to">locations.id</span></div>
+  <div class="relation-item"><span class="r-from">pack_list.order_id</span> <span class="r-arrow">──▶</span> <span class="r-to">outbound_orders.id</span></div>
+  <div class="relation-item"><span class="r-from">shipments.order_id</span> <span class="r-arrow">──▶</span> <span class="r-to">outbound_orders.id</span></div>
+  <div class="relation-item"><span class="r-from">shipments.carrier_id</span> <span class="r-arrow">──▶</span> <span class="r-to">carriers.id</span></div>
+  <div class="relation-item"><span class="r-from">returns.order_id</span> <span class="r-arrow">──▶</span> <span class="r-to">outbound_orders.id</span></div>
+  <div class="relation-item"><span class="r-from">inventory_transactions.product_id + location_id</span> <span class="r-arrow">──▶</span> <span class="r-to">products + locations</span></div>
+  <div class="relation-item"><span class="r-from">audit_logs.user_id</span> <span class="r-arrow">──▶</span> <span class="r-to">users.id</span></div>
+</div>
+
+<!-- BUSINESS FLOW -->
+<div class="flow-section">
+  <h2>🔄 WMS Business Flow — Table Sequence</h2>
+  
+  <div style="display:flex; gap:30px;">
+    
+    <!-- INBOUND FLOW -->
+    <div style="flex:1;">
+      <h3 style="color:#f59e0b;font-size:13px;margin-bottom:8px;">📥 Inbound Flow</h3>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Create PO/ASN in ERP → Import to <span class="flow-tables">inbound_receipts</span></div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text">Truck arrives at dock → Update receipt status to <em>in_progress</em></div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">Receive goods → Add lines to <span class="flow-tables">receipt_items</span>, record qty</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">QC check → Mark damaged items in receipt_items</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">Put-away → Assign <span class="flow-tables">locations</span>, write to <span class="flow-tables">inventory</span></div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">Record stock movement in <span class="flow-tables">inventory_transactions</span></div></div>
+    </div>
+    
+    <!-- OUTBOUND FLOW -->
+    <div style="flex:1;">
+      <h3 style="color:#ef4444;font-size:13px;margin-bottom:8px;">📤 Outbound Flow</h3>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Create order → Insert into <span class="flow-tables">outbound_orders</span> + <span class="flow-tables">order_items</span></div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text">Wave planning → Generate <span class="flow-tables">pick_tasks</span> from order items</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">Picker picks from location → Update pick_task status</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">Pack items → Create <span class="flow-tables">pack_list</span> records</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">Ship → Create <span class="flow-tables">shipments</span>, deduct inventory</div></div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">All movements logged in <span class="flow-tables">inventory_transactions</span></div></div>
+    </div>
+    
+  </div>
+</div>
+
+<br/>
+<p style="text-align:center;color:#475569;font-size:11px;">WMS Distribution Center v1.0 — Portfolio case study</p>
+
+</body>
+</html>
