@@ -1,0 +1,28 @@
+# build output
+bin/
+obj/
+dist/
+*.user
+.vs/
+TestResults/
+# deps
+node_modules/
+# secrets & local config
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.Production.json
+# runtime
+uploads/
+logs/
+*.log
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+# legacy generated office docs and generator scripts (not part of the case study)
+docs/output/
+docs/scripts/
+docs/*.docx
+docs/screenshots-legacy/

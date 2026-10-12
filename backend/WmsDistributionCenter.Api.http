@@ -1,0 +1,11 @@
+@host = http://localhost:5243
+
+### Login (demo seed user)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "username": "admin", "password": "admin123" }
+
+### Dashboard (paste the token from the login response)
+GET {{host}}/api/reports/dashboard
+Authorization: Bearer <token>
