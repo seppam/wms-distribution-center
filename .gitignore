@@ -28,3 +28,6 @@ docs/*.docx
 docs/screenshots-legacy/
 dist-browser-demo/
 !.env.browser-demo
+
+# Vercel
+.vercel

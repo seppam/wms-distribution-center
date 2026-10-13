@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import process from 'node:process';
 const read = (dir) => readdirSync(dir, { recursive: true }).filter((f) => /\.(js|html|css)$/.test(f)).map((f) => readFileSync(`${dir}/${f}`, 'utf8')).join('\n');
-const MARKERS = ['wms-browser-demo:v', 'nothing is sent to a server'];
+const MARKERS = ['wms-browser-demo:v', 'runs entirely in your browser'];
 let failed = false;
 if (existsSync('dist')) {
   const text = read('dist');

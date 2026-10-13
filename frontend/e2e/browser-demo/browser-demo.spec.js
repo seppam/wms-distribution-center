@@ -1,18 +1,23 @@
+import process from 'node:process';
 import { expect, test } from '@playwright/test';
 import { dialog, toast } from '../helpers';
 
 // The browser-only demo: static files, no API, no database. Every request must stay on the page's own origin and none may hit /api.
 
-const ORIGIN = 'http://localhost:5176';
+const ORIGIN = (process.env.DEMO_ORIGIN || 'http://localhost:5176').replace(/\/$/, '');
 let requests;
+let cspViolations;
 
 test.beforeEach(async ({ page }) => {
   requests = [];
+  cspViolations = [];
+  page.on('console', (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) cspViolations.push(m.text()); });
   page.on('request', (r) => requests.push(r.url()));
 });
 test.afterEach(() => {
   const external = requests.filter((u) => !u.startsWith(ORIGIN) && !u.startsWith('data:') && !u.startsWith('blob:'));
   expect(external, 'requests that left the page origin').toEqual([]);
+  expect(cspViolations, 'Content-Security-Policy violations').toEqual([]);
   expect(requests.filter((u) => new URL(u).pathname.startsWith('/api')), 'requests to an API').toEqual([]);
 });
 
@@ -26,7 +31,17 @@ async function signInAs(page, role) {
 
 test('the login page shows the browser-demo banner and one button per role', async ({ page }) => {
   await page.goto('/login');
-  await expect(page.getByRole('region', { name: 'Browser demo' })).toContainText('Browser demo: data is stored only in this browser (localStorage); nothing is sent to a server');
+  await expect(page.getByRole('region', { name: 'Browser demo' })).toContainText('Demo version: runs entirely in your browser. No server and no database; data is saved in your browser (localStorage).');
+  const repo = 'https://github.com/seppam/wms-distribution-center';
+  for (const scope of [page.getByRole('region', { name: 'Browser demo' }), page.getByRole('region', { name: 'Demo mode' })]) {
+    const link = scope.getByRole('link', { name: /Run the full project on your own computer/ });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', repo);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener/);
+  }
+  await expect(page).toHaveTitle('WMS Distribution Center (browser demo)');
+  await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /fictional data/);
   for (const role of ['Admin', 'Supervisor', 'Operator', 'Viewer'])
     await expect(page.getByRole('button', { name: `Sign in as ${role}` })).toBeVisible();
 });
@@ -83,6 +98,7 @@ test('receive to ship happy path, persists across a reload, then reset', async (
 
   await page.goto('/picks');
   const tasks = page.getByRole('row').filter({ hasText: orderNumber });
+  await expect(tasks.first()).toBeVisible();
   const count = await tasks.count();
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
@@ -122,12 +138,17 @@ test('receive to ship happy path, persists across a reload, then reset', async (
   await expect(row().getByText('Draft')).toBeVisible();
 });
 
-test('About this demo explains the simulation and links to the hosting section', async ({ page }) => {
+test('About this demo explains the simulation and links to the repo', async ({ page }) => {
   await signInAs(page, 'Viewer');
   await page.getByRole('button', { name: 'About this demo' }).click();
   const about = dialog(page, 'About this demo');
   await expect(about).toContainText('reimplemented in TypeScript');
-  await expect(about.getByRole('link', { name: /Hosting the real thing/ })).toHaveAttribute('href', /#hosting-the-real-thing$/);
+  await expect(about).toContainText('ASP.NET Core 9 API + PostgreSQL');
+  await expect(about).toContainText('docker compose -f docker-compose.demo.yml up --build');
+  const readme = about.getByRole('link', { name: /repository README/ });
+  await expect(readme).toHaveAttribute('href', 'https://github.com/seppam/wms-distribution-center#readme');
+  await expect(readme).toHaveAttribute('target', '_blank');
+  await expect(readme).toHaveAttribute('rel', /noopener/);
 });
 
 test('deep links work (SPA fallback) and a stale session is sent to login', async ({ page }) => {

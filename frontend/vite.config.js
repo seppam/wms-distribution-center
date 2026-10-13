@@ -16,7 +16,11 @@ export default defineConfig(({ mode }) => {
         name: 'browser-demo-no-network',
         transformIndexHtml(html) {
           // The demo makes no network calls at all: drop the Google Fonts links (the UI falls back to system fonts).
-          return browserDemo ? html.replace(/\s*<link[^>]+(fonts\.googleapis|fonts\.gstatic)[^>]*>/g, '') : html;
+          if (!browserDemo) return html;
+          return html
+            .replace(/\s*<link[^>]+(fonts\.googleapis|fonts\.gstatic)[^>]*>/g, '')
+            .replace(/<title>[^<]*<\/title>/, '<title>WMS Distribution Center (browser demo)</title>')
+            .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="Demo version of a warehouse management system (receiving, putaway, picking, packing, shipping). Runs entirely in your browser with fictional data; no server, no database.">');
         },
       },
     ],

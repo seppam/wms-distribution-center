@@ -28,7 +28,7 @@ npm run build:browser-demo        # static files in frontend/dist-browser-demo
 npm run preview:browser-demo      # http://localhost:5176
 ```
 
-Click *Sign in as Admin / Supervisor / Operator / Viewer*. A banner says *Browser demo: data is stored only in this browser (localStorage); nothing is sent to a server*, with **Reset demo data** and **About this demo** buttons. A hosted copy can be added: see [Hosting](#hosting-the-real-thing). Differences from the full stack: [The situation and your options](#the-situation-and-your-options).
+Click *Sign in as Admin / Supervisor / Operator / Viewer*. A banner says *Demo version: runs entirely in your browser. No server and no database; data is saved in your browser (localStorage).*, links to this repository, and offers **Reset demo data** and **About this demo** buttons. A hosted copy can be added: see [Hosting](#hosting-the-real-thing). Differences from the full stack: [The situation and your options](#the-situation-and-your-options).
 
 ![Browser demo login](docs/screenshots/11-browser-demo-login.webp)
 ![Browser demo dashboard](docs/screenshots/12-browser-demo-dashboard.webp)
@@ -86,7 +86,7 @@ cd frontend && npm ci && npm run build:browser-demo     # output: frontend/dist-
 
 Upload that folder; no environment variables are needed. It needs a **single-page-app fallback** (every unknown path serves `index.html`), because the router uses real URLs:
 
-- **Vercel**: Output Directory `frontend/dist-browser-demo` (Build Command `cd frontend && npm ci && npm run build:browser-demo`) and one rewrite `/(.*)` to `/index.html` set in the project settings, or in a `vercel.json` you add in your own fork (none is committed here on purpose).
+- **Vercel**: `frontend/vercel.json` is committed (build command, output directory, SPA rewrite, security headers incl. a CSP with `connect-src 'self'`, immutable caching for hashed assets). **Deploying the static demo on Vercel:** from the repository root run `vercel deploy --prod` (the Vercel project has Root Directory `frontend`, because the build also reads `contracts/`). The first time, run `vercel link --project <name>` at the root and set that Root Directory. No environment variables, no Git integration needed (redeploy by hand).
 - **Netlify / Cloudflare Pages**: the build already writes `_redirects` with `/* /index.html 200`.
 - **GitHub Pages**: the build writes `404.html` (a copy of `index.html`). For a project page served under `/<repo>/`, build with `VITE_BASE_PATH=/<repo>/ npm run build:browser-demo`.
 - **nginx / any server**: `try_files $uri /index.html;`.

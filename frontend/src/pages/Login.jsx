@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useDemoInfo from '../hooks/useDemoInfo';
 import { errorMessage } from '../services/api';
 import { demoPassword } from '../services/demo';
-import { BROWSER_DEMO, BrowserDemoNotice } from '#browser-demo';
+import { BROWSER_DEMO, BrowserDemoNotice, BrowserDemoExplainer } from '#browser-demo';
 import './Login.css';
 
 export default function Login() {
@@ -96,7 +96,8 @@ export default function Login() {
         {demo.enabled && (
           <section className="demo-panel" aria-label="Demo mode">
             <h2><FlaskConical size={15} aria-hidden="true" /> Demo mode</h2>
-            <p>{BROWSER_DEMO ? 'Fictional data that lives in this browser. Pick a role to explore, no sign-up needed.' : 'This is a public demo with fictional data and shared accounts. Pick a role to explore, no sign-up needed.'}</p>
+            {BROWSER_DEMO && <BrowserDemoExplainer />}
+            <p>{BROWSER_DEMO ? 'The data is fictional. Pick a role to explore, no sign-up needed.' : 'This is a public demo with fictional data and shared accounts. Pick a role to explore, no sign-up needed.'}</p>
             {sharedPassword ? (
               <div className="demo-buttons">
                 {demo.accounts.map((a) => (

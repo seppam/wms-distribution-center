@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { HardDrive } from 'lucide-react';
 import { Confirm, useToast } from '../../components/ui';
 import { getEngine } from '../axiosAdapter';
-import AboutDemoDialog from './AboutDemoDialog';
+import AboutDemoDialog, { DEMO_SENTENCE, RepoLink } from './AboutDemoDialog';
 import './browser-demo.css';
 
 const reload = () => window.location.reload();
@@ -33,7 +33,7 @@ export default function BrowserDemoNotice() {
       <div className="demo-banner" role="region" aria-label="Browser demo">
         <HardDrive size={16} aria-hidden="true" />
         <span className="banner-text">
-          <strong>Browser demo:</strong> data is stored only in this browser (localStorage); nothing is sent to a server.
+          {DEMO_SENTENCE} <RepoLink />
         </span>
         <span className="banner-actions">
           <button type="button" className="btn btn-sm btn-secondary" onClick={() => setAbout(true)}>About this demo</button>

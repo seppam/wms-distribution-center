@@ -8,8 +8,13 @@
 .about-demo { display: grid; gap: 14px; font-size: 13.5px; line-height: 1.55; color: #cbd5e1; }
 .about-demo h3 { font-size: 13px; letter-spacing: .5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
 .about-demo ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
-.about-demo a { color: #38bdf8; }
+.about-demo a { color: #38bdf8; text-decoration: underline; }
 .about-demo table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .about-demo th, .about-demo td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #334155; vertical-align: top; }
 .about-demo th { color: #94a3b8; font-weight: 600; }
 .login-card .browser-demo { margin: -10px 0 18px; }
+.browser-demo .repo-link { color: inherit; font-weight: 600; text-decoration: underline; white-space: nowrap; }
+.demo-panel .repo-link { color: #38bdf8; text-decoration: underline; }
+.demo-explainer { margin: 0 0 8px; }
+.about-demo code { background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 1px 5px; font-size: 12px; word-break: break-all; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
