@@ -106,18 +106,15 @@ public class OutboundOrdersController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        try
-        {
-            var shipment = await _outboundService.ShipOrderAsync(id, dto, Guid.Parse(userId));
-            return Ok(shipment);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var shipment = await _outboundService.ShipOrderAsync(id, dto, Guid.Parse(userId));
+        return Ok(shipment);
+    }
+
+    [Authorize(Policy = Policies.Manage)]
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var order = await _outboundService.CancelAsync(id);
+        return order == null ? NotFound() : Ok(order);
     }
 }

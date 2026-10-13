@@ -34,5 +34,6 @@ public record OutboundSummaryDto(
     int Packed,
     int Shipped,
     int Completed,
-    int Cancelled
+    int Cancelled,
+    int Picking = 0
 );

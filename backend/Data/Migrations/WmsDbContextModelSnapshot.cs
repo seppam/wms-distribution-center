@@ -344,6 +344,11 @@ namespace WmsDistributionCenter.Api.Data.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("unit_cost");
 
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LocationId");
@@ -823,7 +828,7 @@ namespace WmsDistributionCenter.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("condition");
 
-                    b.Property<int>("Disposition")
+                    b.Property<int?>("Disposition")
                         .HasColumnType("integer")
                         .HasColumnName("disposition");
 
@@ -834,6 +839,22 @@ namespace WmsDistributionCenter.Api.Data.Migrations
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<Guid?>("ProcessedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("processed_by");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("numeric")
+                        .HasColumnName("qty");
 
                     b.Property<string>("Reason")
                         .HasColumnType("text")
@@ -846,6 +867,10 @@ namespace WmsDistributionCenter.Api.Data.Migrations
                     b.Property<Guid?>("ReceivedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("received_by");
+
+                    b.Property<Guid?>("RestockLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restock_location_id");
 
                     b.Property<string>("ReturnNo")
                         .IsRequired()
@@ -865,7 +890,11 @@ namespace WmsDistributionCenter.Api.Data.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("ProductId");
+
                     b.HasIndex("ReceivedBy");
+
+                    b.HasIndex("RestockLocationId");
 
                     b.HasIndex("ReturnNo")
                         .IsUnique();
@@ -1554,9 +1583,20 @@ namespace WmsDistributionCenter.Api.Data.Migrations
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("WmsDistributionCenter.Api.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("WmsDistributionCenter.Api.Models.User", "Receiver")
                         .WithMany()
                         .HasForeignKey("ReceivedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WmsDistributionCenter.Api.Models.Location", "RestockLocation")
+                        .WithMany()
+                        .HasForeignKey("RestockLocationId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WmsDistributionCenter.Api.Models.Warehouse", "Warehouse")
@@ -1567,7 +1607,11 @@ namespace WmsDistributionCenter.Api.Data.Migrations
 
                     b.Navigation("Order");
 
+                    b.Navigation("Product");
+
                     b.Navigation("Receiver");
+
+                    b.Navigation("RestockLocation");
 
                     b.Navigation("Warehouse");
                 });

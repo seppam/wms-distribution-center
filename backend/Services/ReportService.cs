@@ -100,7 +100,8 @@ public class ReportService : IReportService
             orders.FirstOrDefault(r => r.Status == OrderStatus.Packed)?.Count ?? 0,
             orders.FirstOrDefault(r => r.Status == OrderStatus.Shipped)?.Count ?? 0,
             orders.FirstOrDefault(r => r.Status == OrderStatus.Completed)?.Count ?? 0,
-            orders.FirstOrDefault(r => r.Status == OrderStatus.Cancelled)?.Count ?? 0
+            orders.FirstOrDefault(r => r.Status == OrderStatus.Cancelled)?.Count ?? 0,
+            orders.FirstOrDefault(r => r.Status == OrderStatus.Picking)?.Count ?? 0
         );
     }
 }

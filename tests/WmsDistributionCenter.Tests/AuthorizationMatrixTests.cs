@@ -56,15 +56,23 @@ public class AuthorizationMatrixTests : IAsyncLifetime
             ["DELETE api/outboundorders/{id}"] = "manage", ["POST api/outboundorders/{id}/items"] = "manage",
             ["POST api/outboundorders/{id}/start-picking"] = "manage", ["POST api/outboundorders/{id}/assign-picker"] = "manage",
             ["POST api/outboundorders/{id}/pack"] = "operate", ["POST api/outboundorders/{id}/ship"] = "operate",
+            ["POST api/outboundorders/{id}/cancel"] = "manage",
+            ["GET api/pick-tasks"] = "read", ["POST api/pick-tasks/{id}/confirm"] = "operate",
+            ["GET api/shipments"] = "read", ["POST api/shipments/{id}/deliver"] = "operate",
+            ["GET api/transfers"] = "read", ["GET api/transfers/{id}"] = "read",
+            ["POST api/transfers"] = "operate", ["POST api/transfers/{id}/complete"] = "operate", ["POST api/transfers/{id}/cancel"] = "operate",
+            ["GET api/returns"] = "read", ["GET api/returns/{id}"] = "read",
+            ["POST api/returns"] = "operate", ["POST api/returns/{id}/process"] = "manage",
 
             ["GET api/inventory"] = "read", ["GET api/inventory/{id}"] = "read", ["GET api/inventory/adjustments"] = "read",
             ["POST api/inventory/adjustments"] = "operate", ["POST api/inventory/adjustments/{id}/approve"] = "manage",
+            ["POST api/inventory/adjustments/{id}/reject"] = "manage", ["GET api/inventory/transactions"] = "read",
 
             ["GET api/reports/dashboard"] = "read", ["GET api/reports/inventory-summary"] = "read",
             ["GET api/reports/inbound-summary"] = "read", ["GET api/reports/outbound-summary"] = "read",
         };
         // Master data: read for everyone, write for Admin/Supervisor, delete for Admin
-        foreach (var r in new[] { "products", "categories", "suppliers", "carriers", "warehouses", "zones", "locations" })
+        foreach (var r in new[] { "products", "categories", "suppliers", "carriers", "warehouses", "zones", "locations", "uoms" })
         {
             m[$"GET api/{r}"] = "read"; m[$"GET api/{r}/{{id}}"] = "read";
             m[$"POST api/{r}"] = "manage"; m[$"PUT api/{r}/{{id}}"] = "manage"; m[$"DELETE api/{r}/{{id}}"] = "admin";

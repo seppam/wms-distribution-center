@@ -21,7 +21,11 @@ public sealed class TestDbContext : WmsDbContext
 /// <summary>Builds an isolated in-memory database with the minimum master data for the core flows.</summary>
 public sealed class TestFixture : IDisposable
 {
+    // One shared root (distinct database names) keeps EF from building a service provider per fixture.
+    private static readonly Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot Root = new();
+    private readonly DbContextOptions<WmsDbContext> _options;
     public TestDbContext Db { get; }
+    public Zone Zone { get; }
     public Warehouse Warehouse { get; }
     public Supplier Supplier { get; }
     public Carrier Carrier { get; }
@@ -31,23 +35,61 @@ public sealed class TestFixture : IDisposable
 
     public TestFixture()
     {
-        var options = new DbContextOptionsBuilder<WmsDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+        _options = new DbContextOptionsBuilder<WmsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString(), Root)
             .Options;
-        Db = new TestDbContext(options);
+        Db = new TestDbContext(_options);
 
         var role = new Role { Id = Guid.NewGuid(), Name = "Admin", IsSystem = true };
         User = new User { Id = Guid.NewGuid(), Username = "tester", Email = "tester@example.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("secret-demo", 4), FullName = "Test User", RoleId = role.Id, IsActive = true };
         Warehouse = new Warehouse { Id = Guid.NewGuid(), Code = "DC-T", Name = "Test DC", IsActive = true };
-        var zone = new Zone { Id = Guid.NewGuid(), WarehouseId = Warehouse.Id, Name = "Storage", ZoneType = ZoneType.Storage, IsActive = true };
+        var zone = Zone = new Zone { Id = Guid.NewGuid(), WarehouseId = Warehouse.Id, Name = "Storage", ZoneType = ZoneType.Storage, IsActive = true };
         Location = new Location { Id = Guid.NewGuid(), ZoneId = zone.Id, LocationCode = "A-01-01", LocationType = LocationType.Pick, MaxCapacity = 1000, Status = LocationStatus.Empty };
         var uom = new Uom { Id = Guid.NewGuid(), Code = "PCS", Name = "Piece", ConversionFactor = 1, IsBase = true };
-        Product = new Product { Id = Guid.NewGuid(), Sku = "SKU-T1", Name = "Test Product", UomId = uom.Id };
+        Product = new Product { Id = Guid.NewGuid(), Sku = "SKU-T1", Name = "Test Product", UomId = uom.Id, IsActive = true };
         Supplier = new Supplier { Id = Guid.NewGuid(), Code = "SUP-T", Name = "Test Supplier", IsActive = true };
         Carrier = new Carrier { Id = Guid.NewGuid(), Name = "Test Carrier", IsActive = true };
 
         Db.AddRange(role, User, Warehouse, zone, Location, uom, Product, Supplier, Carrier);
         Db.SaveChanges();
+    }
+
+    /// <summary>Another context on the same database, e.g. to simulate a second concurrent request.</summary>
+    public TestDbContext NewContext() => new(_options);
+
+    public Location NewLocation(string code, Warehouse? warehouse = null)
+    {
+        var zone = Zone;
+        if (warehouse != null && warehouse.Id != Warehouse.Id)
+        {
+            zone = new Zone { Id = Guid.NewGuid(), WarehouseId = warehouse.Id, Name = "Other storage", ZoneType = ZoneType.Storage, IsActive = true };
+            Db.Zones.Add(zone);
+        }
+        var loc = new Location { Id = Guid.NewGuid(), ZoneId = zone.Id, LocationCode = code, LocationType = LocationType.Pick, MaxCapacity = 1000, Status = LocationStatus.Empty };
+        Db.Locations.Add(loc);
+        Db.SaveChanges();
+        return loc;
+    }
+
+    public Product NewProduct(string sku)
+    {
+        var p = new Product { Id = Guid.NewGuid(), Sku = sku, Name = "Product " + sku, UomId = Product.UomId, IsActive = true };
+        Db.Products.Add(p);
+        Db.SaveChanges();
+        return p;
+    }
+
+    public Inventory Stock(Location location, decimal onHand, Product? product = null, DateOnly? expiry = null, string? lot = null, decimal reserved = 0)
+    {
+        var inv = new Inventory
+        {
+            Id = Guid.NewGuid(), ProductId = (product ?? Product).Id, LocationId = location.Id, QtyOnHand = onHand,
+            QtyReserved = reserved, ExpiryDate = expiry, LotNumber = lot, Status = InventoryStatus.Available
+        };
+        Db.Inventories.Add(inv);
+        location.Status = LocationStatus.Occupied;
+        Db.SaveChanges();
+        return inv;
     }
 
     public void Dispose() => Db.Dispose();

@@ -109,6 +109,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IInboundService, InboundService>();
 builder.Services.AddScoped<IOutboundService, OutboundService>();
+builder.Services.AddScoped<ITransferService, TransferService>();
+builder.Services.AddScoped<IReturnService, ReturnService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
 // 4. Add Controllers

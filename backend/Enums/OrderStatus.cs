@@ -7,5 +7,7 @@ public enum OrderStatus
     Packed = 3,
     Shipped = 4,
     Completed = 5,
-    Cancelled = 6
+    Cancelled = 6,
+    /// <summary>Stock allocated, pick tasks open.</summary>
+    Picking = 7
 }

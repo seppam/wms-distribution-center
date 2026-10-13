@@ -33,6 +33,10 @@ public class InventoryController : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
+    [HttpGet("transactions")]
+    public async Task<IActionResult> Transactions([FromQuery] Guid? productId, [FromQuery] Guid? locationId, [FromQuery] int take = 100)
+        => Ok(await _inventoryService.GetTransactionsAsync(productId, locationId, take));
+
     [HttpGet("adjustments")]
     public async Task<IActionResult> GetAdjustments()
     {
@@ -56,7 +60,17 @@ public class InventoryController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var adj = await _inventoryService.ApproveAdjustmentAsync(id, Guid.Parse(userId));
+        var adj = await _inventoryService.ApproveAdjustmentAsync(id, Guid.Parse(userId), User.IsInRole(AppRoles.Admin));
+        return adj == null ? NotFound() : Ok(adj);
+    }
+
+    [Authorize(Policy = Policies.Manage)]
+    [HttpPost("adjustments/{id:guid}/reject")]
+    public async Task<IActionResult> RejectAdjustment(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var adj = await _inventoryService.RejectAdjustmentAsync(id, Guid.Parse(userId));
         return adj == null ? NotFound() : Ok(adj);
     }
 }

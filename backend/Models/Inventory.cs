@@ -39,6 +39,10 @@ public class Inventory
     [Column("last_counted_date")]
     public DateOnly? LastCountedDate { get; set; }
 
+    /// <summary>Optimistic concurrency token, incremented on every change (prevents over-allocation under concurrency).</summary>
+    [Column("version")]
+    public int Version { get; set; }
+
     // Navigation
     [ForeignKey(nameof(ProductId))]
     public Product Product { get; set; } = null!;

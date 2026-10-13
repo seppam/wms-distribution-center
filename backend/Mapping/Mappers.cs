@@ -5,6 +5,7 @@ using WmsDistributionCenter.Api.DTOs.Inventory;
 using WmsDistributionCenter.Api.DTOs.Location;
 using WmsDistributionCenter.Api.DTOs.OutboundOrder;
 using WmsDistributionCenter.Api.DTOs.Product;
+using WmsDistributionCenter.Api.DTOs.Return;
 using WmsDistributionCenter.Api.DTOs.Role;
 using WmsDistributionCenter.Api.DTOs.Supplier;
 using WmsDistributionCenter.Api.DTOs.Transfer;
@@ -65,6 +66,10 @@ public static class Mappers
             r.PoNumber, r.AsnNumber, r.Status, r.ExpectedDate, r.ReceivedDate, r.ReceivedBy, r.Receiver?.FullName,
             r.DockDoor, r.Notes, r.CreatedAt);
 
+    /// <summary>Receipt including its lines (requires Items to be loaded).</summary>
+    public static InboundReceiptResponseDto ToDetailDto(this InboundReceipt r) =>
+        r.ToDto() with { Items = r.Items.OrderBy(i => i.Product?.Sku).Select(i => i.ToDto()).ToList() };
+
     public static ReceiptItemResponseDto ToDto(this ReceiptItem i) =>
         new(i.Id, i.ReceiptId, i.ProductId, i.Product?.Name ?? string.Empty, i.Product?.Sku ?? string.Empty,
             i.ExpectedQty, i.ReceivedQty, i.DamagedQty, i.LotNumber, i.ExpiryDate, i.UnitCost, i.Status,
@@ -73,6 +78,35 @@ public static class Mappers
     public static OutboundOrderResponseDto ToDto(this OutboundOrder o) =>
         new(o.Id, o.OrderNumber, o.WarehouseId, o.Warehouse?.Name ?? string.Empty, o.OrderType, o.Status, o.Priority,
             o.Destination, o.RequestedDate, o.DueDate, o.CreatedBy, o.Creator?.FullName ?? string.Empty, o.Notes, o.CreatedAt);
+
+    /// <summary>Order including lines, cartons and shipments (requires them to be loaded).</summary>
+    public static OutboundOrderResponseDto ToDetailDto(this OutboundOrder o) =>
+        o.ToDto() with
+        {
+            Items = o.Items.OrderBy(i => i.Product?.Sku).Select(i => i.ToDto()).ToList(),
+            PackLists = o.PackLists.OrderBy(p => p.PackedAt).Select(p => p.ToDto()).ToList(),
+            Shipments = o.Shipments.OrderBy(sh => sh.ShippedAt).Select(sh => sh.ToDto()).ToList()
+        };
+
+    public static PackListResponseDto ToDto(this PackList p) =>
+        new(p.Id, p.CartonNo, p.WeightKg, p.PackedAt, p.Packer?.FullName ?? string.Empty, p.Status);
+
+    public static PickTaskResponseDto ToDto(this PickTask t) =>
+        new(t.Id, t.OrderItem?.OrderId ?? Guid.Empty, t.OrderItem?.Order?.OrderNumber ?? string.Empty, t.OrderItemId,
+            t.ProductId, t.Product?.Sku ?? string.Empty, t.Product?.Name ?? string.Empty,
+            t.FromLocationId, t.FromLocation?.LocationCode ?? string.Empty, t.QtyToPick, t.QtyPicked, t.Status,
+            t.PickerId, t.Picker?.FullName, t.AssignedAt, t.PickedAt);
+
+    public static ReturnResponseDto ToDto(this ReturnOrder r) =>
+        new(r.Id, r.ReturnNo, r.OrderId, r.Order?.OrderNumber, r.WarehouseId, r.Warehouse?.Name ?? string.Empty,
+            r.ProductId, r.Product?.Sku ?? string.Empty, r.Product?.Name ?? string.Empty, r.Qty, r.Reason, r.Condition,
+            r.Disposition, r.RestockLocationId, r.RestockLocation?.LocationCode, r.Status, r.Receiver?.FullName,
+            r.ReceivedAt, r.ProcessedAt, r.Notes);
+
+    public static InventoryTransactionResponseDto ToDto(this InventoryTransaction t) =>
+        new(t.Id, t.ProductId, t.Product?.Sku ?? string.Empty, t.Product?.Name ?? string.Empty, t.LocationId,
+            t.Location?.LocationCode ?? string.Empty, t.ReferenceType, t.ReferenceId, t.TransactionType,
+            t.QtyBefore, t.QtyAfter, t.UomQty, t.User?.FullName ?? string.Empty, t.Notes, t.CreatedAt);
 
     public static OrderItemResponseDto ToDto(this OrderItem i) =>
         new(i.Id, i.OrderId, i.ProductId, i.Product?.Name ?? string.Empty, i.Product?.Sku ?? string.Empty,

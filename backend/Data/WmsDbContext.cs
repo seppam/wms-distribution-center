@@ -31,6 +31,25 @@ public class WmsDbContext : DbContext
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        BumpInventoryVersions();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        BumpInventoryVersions();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>Every modified stock row gets a new version so concurrent writers fail instead of overwriting each other.</summary>
+    private void BumpInventoryVersions()
+    {
+        foreach (var entry in ChangeTracker.Entries<Inventory>().Where(e => e.State == EntityState.Modified))
+            entry.Entity.Version = entry.OriginalValues.GetValue<int>(nameof(Inventory.Version)) + 1;
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -101,6 +120,7 @@ public class WmsDbContext : DbContext
         modelBuilder.Entity<Inventory>(e =>
         {
             e.HasIndex(i => new { i.ProductId, i.LocationId }).IsUnique();
+            e.Property(i => i.Version).IsConcurrencyToken();
             e.HasOne(i => i.Product).WithMany(p => p.Inventories).HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(i => i.Location).WithMany(l => l.Inventories).HasForeignKey(i => i.LocationId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -175,6 +195,8 @@ public class WmsDbContext : DbContext
             e.HasOne(r => r.Order).WithMany(o => o.Returns).HasForeignKey(r => r.OrderId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(r => r.Warehouse).WithMany().HasForeignKey(r => r.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.Receiver).WithMany().HasForeignKey(r => r.ReceivedBy).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Product).WithMany().HasForeignKey(r => r.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.RestockLocation).WithMany().HasForeignKey(r => r.RestockLocationId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // Adjustment

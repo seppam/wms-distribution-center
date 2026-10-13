@@ -26,14 +26,14 @@ public record InventoryQueryDto(
     Guid? WarehouseId,
     InventoryStatus? Status,
     int Page = 1,
-    int PageSize = 20
+    int PageSize = 100
 );
 
 public record CreateAdjustmentDto(
     [Required] Guid ProductId,
     [Required] Guid LocationId,
     AdjType AdjType,
-    decimal AdjQty,
+    [Range(0, 1000000)] decimal AdjQty,
     string? Reason
 );
 
@@ -54,5 +54,23 @@ public record AdjustmentResponseDto(
     Guid? ApprovedBy,
     string? ApproverName,
     AdjStatus Status,
+    DateTime CreatedAt
+);
+
+public record InventoryTransactionResponseDto(
+    long Id,
+    Guid ProductId,
+    string ProductSku,
+    string ProductName,
+    Guid LocationId,
+    string LocationCode,
+    ReferenceType ReferenceType,
+    Guid ReferenceId,
+    TransactionType TransactionType,
+    decimal QtyBefore,
+    decimal QtyAfter,
+    decimal UomQty,
+    string UserName,
+    string? Notes,
     DateTime CreatedAt
 );

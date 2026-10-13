@@ -7,7 +7,7 @@ public record CreateTransferDto(
     [Required] Guid ProductId,
     [Required] Guid FromLocationId,
     [Required] Guid ToLocationId,
-    [Required] decimal Qty,
+    [Range(0.0001, 1000000)] decimal Qty,
     string? Reason
 );
 
