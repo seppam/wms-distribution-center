@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - name: Test (xUnit: workflows, authorization matrix, security, migrations)
+      - name: Test (xUnit - workflows, authorization matrix, security, migrations)
         run: dotnet test WmsDistributionCenter.sln --configuration Release
       - name: Dependency audit (fails on any known vulnerability, including transitive)
         run: |
