@@ -10,7 +10,7 @@ public class InboundFlowTests
     private static async Task<(TestFixture f, InboundService svc, Guid receiptId, Guid itemId)> ArrangeAsync(decimal expected)
     {
         var f = new TestFixture();
-        var svc = new InboundService(f.Db, f.Mapper);
+        var svc = new InboundService(f.Db);
         var receipt = await svc.CreateAsync(new CreateInboundReceiptDto(f.Supplier.Id, f.Warehouse.Id, "PO-1", null, null, "D1", null));
         var item = await svc.AddItemAsync(receipt.Id, new AddReceiptItemDto(f.Product.Id, expected, 5m, null, null, f.Location.Id));
         return (f, svc, receipt.Id, item.Id);
@@ -20,7 +20,7 @@ public class InboundFlowTests
     public async Task CreateReceipt_StartsAsDraft_WithGeneratedNumber()
     {
         using var f = new TestFixture();
-        var svc = new InboundService(f.Db, f.Mapper);
+        var svc = new InboundService(f.Db);
         var r = await svc.CreateAsync(new CreateInboundReceiptDto(f.Supplier.Id, f.Warehouse.Id, null, null, null, null, null));
         Assert.Equal(InboundStatus.Draft, r.Status);
         Assert.StartsWith("RCV-", r.ReceiptNo);

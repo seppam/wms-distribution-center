@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using WmsDistributionCenter.Api.Configuration;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.Infrastructure;
 using WmsDistributionCenter.Api.Security;
@@ -102,14 +101,7 @@ if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// 3. Add AutoMapper
-builder.Services.AddSingleton(provider =>
-{
-    var config = new AutoMapper.MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>());
-    return config.CreateMapper();
-});
-
-// 4. Add Services
+// 3. Add Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
@@ -119,7 +111,7 @@ builder.Services.AddScoped<IInboundService, InboundService>();
 builder.Services.AddScoped<IOutboundService, OutboundService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
-// 5. Add Controllers
+// 4. Add Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -127,7 +119,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 
-// 6. Add Swagger
+// 5. Add Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -159,7 +151,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 7. CORS: only the configured origins (AllowedOrigins). Empty means same-origin only.
+// 6. CORS: only the configured origins (AllowedOrigins). Empty means same-origin only.
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 if (allowedOrigins.Any(o => o.Trim() == "*"))
     throw new InvalidOperationException("AllowedOrigins must list explicit origins; '*' is not allowed.");
@@ -174,7 +166,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// 8. Create schema (if missing) and seed
+// 7. Create schema (if missing) and seed
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<WmsDbContext>();
@@ -190,7 +182,7 @@ using (var scope = app.Services.CreateScope())
         scope.ServiceProvider.GetRequiredService<ILogger<Program>>());
 }
 
-// 9. Configure pipeline
+// 8. Configure pipeline
 app.UseExceptionHandler();
 if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
     app.UseForwardedHeaders();

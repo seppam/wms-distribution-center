@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.OutboundOrder;
 using WmsDistributionCenter.Api.Enums;
 using WmsDistributionCenter.Api.Models;
@@ -10,12 +10,10 @@ namespace WmsDistributionCenter.Api.Services;
 public class OutboundService : IOutboundService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public OutboundService(WmsDbContext db, IMapper mapper)
+    public OutboundService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     private async Task<string> GenerateOrderNo()
@@ -34,7 +32,7 @@ public class OutboundService : IOutboundService
             .Include(o => o.Creator)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<OutboundOrderResponseDto>>(orders);
+        return orders.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<OutboundOrderResponseDto?> GetByIdAsync(Guid id)
@@ -46,7 +44,7 @@ public class OutboundService : IOutboundService
             .Include(o => o.PackLists)
             .Include(o => o.Shipments).ThenInclude(s => s.Carrier)
             .FirstOrDefaultAsync(o => o.Id == id);
-        return order == null ? null : _mapper.Map<OutboundOrderResponseDto>(order);
+        return order?.ToDto();
     }
 
     public async Task<OutboundOrderResponseDto> CreateAsync(CreateOutboundOrderDto dto, Guid createdBy)
@@ -73,7 +71,7 @@ public class OutboundService : IOutboundService
         await _db.Entry(order).Reference(o => o.Warehouse).LoadAsync();
         await _db.Entry(order).Reference(o => o.Creator).LoadAsync();
 
-        return _mapper.Map<OutboundOrderResponseDto>(order);
+        return order.ToDto();
     }
 
     public async Task<OutboundOrderResponseDto?> UpdateAsync(Guid id, UpdateOutboundOrderDto dto)
@@ -91,7 +89,7 @@ public class OutboundService : IOutboundService
         await _db.Entry(order).Reference(o => o.Warehouse).LoadAsync();
         await _db.Entry(order).Reference(o => o.Creator).LoadAsync();
 
-        return _mapper.Map<OutboundOrderResponseDto>(order);
+        return order.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -121,7 +119,7 @@ public class OutboundService : IOutboundService
         await _db.SaveChangesAsync();
 
         await _db.Entry(item).Reference(i => i.Product).LoadAsync();
-        return _mapper.Map<OrderItemResponseDto>(item);
+        return item.ToDto();
     }
 
     public async Task<IEnumerable<OrderItemResponseDto>> GetOrderItemsAsync(Guid orderId)
@@ -130,7 +128,7 @@ public class OutboundService : IOutboundService
             .Include(i => i.Product)
             .Where(i => i.OrderId == orderId)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<OrderItemResponseDto>>(items);
+        return items.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<OutboundOrderResponseDto?> StartPickingAsync(Guid orderId)
@@ -186,7 +184,7 @@ public class OutboundService : IOutboundService
         await _db.Entry(order).Reference(o => o.Warehouse).LoadAsync();
         await _db.Entry(order).Reference(o => o.Creator).LoadAsync();
 
-        return _mapper.Map<OutboundOrderResponseDto>(order);
+        return order.ToDto();
     }
 
     public async Task<OutboundOrderResponseDto?> AssignPickerAsync(Guid orderId, AssignPickerDto dto)
@@ -210,7 +208,7 @@ public class OutboundService : IOutboundService
         await _db.Entry(order).Reference(o => o.Warehouse).LoadAsync();
         await _db.Entry(order).Reference(o => o.Creator).LoadAsync();
 
-        return _mapper.Map<OutboundOrderResponseDto>(order);
+        return order.ToDto();
     }
 
     public async Task<OutboundOrderResponseDto?> PackOrderAsync(Guid orderId, PackOrderDto dto, Guid userId)
@@ -240,7 +238,7 @@ public class OutboundService : IOutboundService
         await _db.Entry(order).Reference(o => o.Warehouse).LoadAsync();
         await _db.Entry(order).Reference(o => o.Creator).LoadAsync();
 
-        return _mapper.Map<OutboundOrderResponseDto>(order);
+        return order.ToDto();
     }
 
     public async Task<ShipmentResponseDto> ShipOrderAsync(Guid orderId, CreateShipmentDto dto, Guid userId)
@@ -312,6 +310,6 @@ public class OutboundService : IOutboundService
         await _db.Entry(shipment).Reference(s => s.Order).LoadAsync();
         await _db.Entry(shipment).Reference(s => s.Carrier).LoadAsync();
 
-        return _mapper.Map<ShipmentResponseDto>(shipment);
+        return shipment.ToDto();
     }
 }

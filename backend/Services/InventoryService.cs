@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.Inventory;
 using WmsDistributionCenter.Api.Enums;
 using WmsDistributionCenter.Api.Models;
@@ -10,12 +10,10 @@ namespace WmsDistributionCenter.Api.Services;
 public class InventoryService : IInventoryService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public InventoryService(WmsDbContext db, IMapper mapper)
+    public InventoryService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<InventoryResponseDto>> QueryAsync(InventoryQueryDto query)
@@ -41,7 +39,7 @@ public class InventoryService : IInventoryService
             .Take(query.PageSize)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<InventoryResponseDto>>(items);
+        return items.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<InventoryResponseDto?> GetByIdAsync(Guid id)
@@ -51,7 +49,7 @@ public class InventoryService : IInventoryService
             .Include(i => i.Location)
                 .ThenInclude(l => l.Zone)
             .FirstOrDefaultAsync(i => i.Id == id);
-        return item == null ? null : _mapper.Map<InventoryResponseDto>(item);
+        return item?.ToDto();
     }
 
     public async Task<IEnumerable<AdjustmentResponseDto>> GetAdjustmentsAsync()
@@ -63,7 +61,7 @@ public class InventoryService : IInventoryService
             .Include(a => a.Approver)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<AdjustmentResponseDto>>(adj);
+        return adj.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<AdjustmentResponseDto> CreateAdjustmentAsync(CreateAdjustmentDto dto, Guid userId)
@@ -109,7 +107,7 @@ public class InventoryService : IInventoryService
         await _db.Entry(adj).Reference(a => a.Location).LoadAsync();
         await _db.Entry(adj).Reference(a => a.Creator).LoadAsync();
 
-        return _mapper.Map<AdjustmentResponseDto>(adj);
+        return adj.ToDto();
     }
 
     public async Task<AdjustmentResponseDto?> ApproveAdjustmentAsync(Guid adjId, Guid userId)
@@ -152,6 +150,6 @@ public class InventoryService : IInventoryService
         await _db.SaveChangesAsync();
 
         await _db.Entry(adj).Reference(a => a.Approver).LoadAsync();
-        return _mapper.Map<AdjustmentResponseDto>(adj);
+        return adj.ToDto();
     }
 }

@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.Role;
 using WmsDistributionCenter.Api.Models;
 
@@ -10,24 +10,22 @@ namespace WmsDistributionCenter.Api.Services;
 public class RoleService : IRoleService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public RoleService(WmsDbContext db, IMapper mapper)
+    public RoleService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<RoleResponseDto>> GetAllAsync()
     {
         var roles = await _db.Roles.ToListAsync();
-        return _mapper.Map<IEnumerable<RoleResponseDto>>(roles);
+        return roles.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<RoleResponseDto?> GetByIdAsync(Guid id)
     {
         var role = await _db.Roles.FindAsync(id);
-        return role == null ? null : _mapper.Map<RoleResponseDto>(role);
+        return role?.ToDto();
     }
 
     public async Task<RoleResponseDto> CreateAsync(CreateRoleDto dto)
@@ -44,7 +42,7 @@ public class RoleService : IRoleService
 
         _db.Roles.Add(role);
         await _db.SaveChangesAsync();
-        return _mapper.Map<RoleResponseDto>(role);
+        return role.ToDto();
     }
 
     public async Task<RoleResponseDto?> UpdateAsync(Guid id, UpdateRoleDto dto)
@@ -58,7 +56,7 @@ public class RoleService : IRoleService
         if (dto.IsSystem.HasValue) role.IsSystem = dto.IsSystem.Value;
 
         await _db.SaveChangesAsync();
-        return _mapper.Map<RoleResponseDto>(role);
+        return role.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id)

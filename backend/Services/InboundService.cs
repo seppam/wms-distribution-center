@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.InboundReceipt;
 using WmsDistributionCenter.Api.Enums;
 using WmsDistributionCenter.Api.Models;
@@ -10,12 +10,10 @@ namespace WmsDistributionCenter.Api.Services;
 public class InboundService : IInboundService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public InboundService(WmsDbContext db, IMapper mapper)
+    public InboundService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     private async Task<string> GenerateReceiptNo()
@@ -35,7 +33,7 @@ public class InboundService : IInboundService
             .Include(r => r.Receiver)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<InboundReceiptResponseDto>>(receipts);
+        return receipts.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<InboundReceiptResponseDto?> GetByIdAsync(Guid id)
@@ -47,7 +45,7 @@ public class InboundService : IInboundService
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .Include(r => r.Items).ThenInclude(i => i.PutawayLocation)
             .FirstOrDefaultAsync(r => r.Id == id);
-        return receipt == null ? null : _mapper.Map<InboundReceiptResponseDto>(receipt);
+        return receipt?.ToDto();
     }
 
     public async Task<InboundReceiptResponseDto> CreateAsync(CreateInboundReceiptDto dto)
@@ -73,7 +71,7 @@ public class InboundService : IInboundService
         await _db.Entry(receipt).Reference(r => r.Supplier).LoadAsync();
         await _db.Entry(receipt).Reference(r => r.Warehouse).LoadAsync();
 
-        return _mapper.Map<InboundReceiptResponseDto>(receipt);
+        return receipt.ToDto();
     }
 
     public async Task<InboundReceiptResponseDto?> UpdateAsync(Guid id, UpdateInboundReceiptDto dto)
@@ -93,7 +91,7 @@ public class InboundService : IInboundService
         await _db.Entry(receipt).Reference(r => r.Warehouse).LoadAsync();
         await _db.Entry(receipt).Reference(r => r.Receiver).LoadAsync();
 
-        return _mapper.Map<InboundReceiptResponseDto>(receipt);
+        return receipt.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -128,7 +126,7 @@ public class InboundService : IInboundService
         await _db.Entry(item).Reference(i => i.Product).LoadAsync();
         await _db.Entry(item).Reference(i => i.PutawayLocation).LoadAsync();
 
-        return _mapper.Map<ReceiptItemResponseDto>(item);
+        return item.ToDto();
     }
 
     public async Task<ReceiptItemResponseDto?> ReceiveItemAsync(Guid receiptId, ReceiveItemDto dto, Guid userId)
@@ -215,7 +213,7 @@ public class InboundService : IInboundService
         receipt.ReceivedDate = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        return _mapper.Map<ReceiptItemResponseDto>(item);
+        return item.ToDto();
     }
 
     public async Task<InboundReceiptResponseDto?> CompleteReceiptAsync(Guid receiptId, Guid userId)
@@ -237,6 +235,6 @@ public class InboundService : IInboundService
                          anyShortage ? InboundStatus.Partial : InboundStatus.InProgress;
 
         await _db.SaveChangesAsync();
-        return _mapper.Map<InboundReceiptResponseDto>(receipt);
+        return receipt.ToDto();
     }
 }

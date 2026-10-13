@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.Product;
 using WmsDistributionCenter.Api.Models;
 
@@ -9,12 +9,10 @@ namespace WmsDistributionCenter.Api.Services;
 public class ProductService : IProductService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public ProductService(WmsDbContext db, IMapper mapper)
+    public ProductService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<ProductResponseDto>> GetAllAsync()
@@ -23,7 +21,7 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .Include(p => p.Uom)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<ProductResponseDto>>(products);
+        return products.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<ProductResponseDto?> GetByIdAsync(Guid id)
@@ -32,7 +30,7 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .Include(p => p.Uom)
             .FirstOrDefaultAsync(p => p.Id == id);
-        return product == null ? null : _mapper.Map<ProductResponseDto>(product);
+        return product?.ToDto();
     }
 
     public async Task<ProductResponseDto> CreateAsync(CreateProductDto dto)
@@ -58,7 +56,7 @@ public class ProductService : IProductService
         await _db.Entry(product).Reference(p => p.Category).LoadAsync();
         await _db.Entry(product).Reference(p => p.Uom).LoadAsync();
 
-        return _mapper.Map<ProductResponseDto>(product);
+        return product.ToDto();
     }
 
     public async Task<ProductResponseDto?> UpdateAsync(Guid id, UpdateProductDto dto)
@@ -81,7 +79,7 @@ public class ProductService : IProductService
         await _db.Entry(product).Reference(p => p.Category).LoadAsync();
         await _db.Entry(product).Reference(p => p.Uom).LoadAsync();
 
-        return _mapper.Map<ProductResponseDto>(product);
+        return product.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -103,6 +101,6 @@ public class ProductService : IProductService
         if (!string.IsNullOrWhiteSpace(query))
             q = q.Where(p => p.Name.Contains(query) || p.Sku.Contains(query) || (p.Barcode != null && p.Barcode.Contains(query)));
 
-        return _mapper.Map<IEnumerable<ProductResponseDto>>(await q.ToListAsync());
+        return (await q.ToListAsync()).Select(x => x.ToDto()).ToList();
     }
 }

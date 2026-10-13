@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Mapping;
 using WmsDistributionCenter.Api.DTOs.User;
 using WmsDistributionCenter.Api.Models;
 
@@ -9,12 +9,10 @@ namespace WmsDistributionCenter.Api.Services;
 public class UserService : IUserService
 {
     private readonly WmsDbContext _db;
-    private readonly IMapper _mapper;
 
-    public UserService(WmsDbContext db, IMapper mapper)
+    public UserService(WmsDbContext db)
     {
         _db = db;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<UserResponseDto>> GetAllAsync()
@@ -23,7 +21,7 @@ public class UserService : IUserService
             .Include(u => u.Role)
             .Include(u => u.Warehouse)
             .ToListAsync();
-        return _mapper.Map<IEnumerable<UserResponseDto>>(users);
+        return users.Select(x => x.ToDto()).ToList();
     }
 
     public async Task<UserResponseDto?> GetByIdAsync(Guid id)
@@ -32,7 +30,7 @@ public class UserService : IUserService
             .Include(u => u.Role)
             .Include(u => u.Warehouse)
             .FirstOrDefaultAsync(u => u.Id == id);
-        return user == null ? null : _mapper.Map<UserResponseDto>(user);
+        return user?.ToDto();
     }
 
     public async Task<UserResponseDto> CreateAsync(CreateUserDto dto)
@@ -58,7 +56,7 @@ public class UserService : IUserService
         await _db.Entry(user).Reference(u => u.Role).LoadAsync();
         await _db.Entry(user).Reference(u => u.Warehouse).LoadAsync();
 
-        return _mapper.Map<UserResponseDto>(user);
+        return user.ToDto();
     }
 
     public async Task<UserResponseDto?> UpdateAsync(Guid id, UpdateUserDto dto)
@@ -80,7 +78,7 @@ public class UserService : IUserService
         await _db.Entry(user).Reference(u => u.Role).LoadAsync();
         await _db.Entry(user).Reference(u => u.Warehouse).LoadAsync();
 
-        return _mapper.Map<UserResponseDto>(user);
+        return user.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id)

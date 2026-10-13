@@ -1,6 +1,4 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using WmsDistributionCenter.Api.Configuration;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.Enums;
 using WmsDistributionCenter.Api.Models;
@@ -24,7 +22,6 @@ public sealed class TestDbContext : WmsDbContext
 public sealed class TestFixture : IDisposable
 {
     public TestDbContext Db { get; }
-    public IMapper Mapper { get; }
     public Warehouse Warehouse { get; }
     public Supplier Supplier { get; }
     public Carrier Carrier { get; }
@@ -38,7 +35,6 @@ public sealed class TestFixture : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         Db = new TestDbContext(options);
-        Mapper = new MapperConfiguration(c => c.AddProfile<MappingProfile>()).CreateMapper();
 
         var role = new Role { Id = Guid.NewGuid(), Name = "Admin", IsSystem = true };
         User = new User { Id = Guid.NewGuid(), Username = "tester", Email = "tester@example.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("secret-demo", 4), FullName = "Test User", RoleId = role.Id, IsActive = true };

@@ -13,7 +13,7 @@ public class OutboundFlowTests
     {
         f.Db.Inventories.Add(new Inventory { Id = Guid.NewGuid(), ProductId = f.Product.Id, LocationId = f.Location.Id, QtyOnHand = stock, Status = InventoryStatus.Available });
         await f.Db.SaveChangesAsync();
-        var svc = new OutboundService(f.Db, f.Mapper);
+        var svc = new OutboundService(f.Db);
         var order = await svc.CreateAsync(new CreateOutboundOrderDto(f.Warehouse.Id, OrderType.Sales, Priority.Normal, "Store #1", null, null, null), f.User.Id);
         await svc.AddItemAsync(order.Id, new AddOrderItemDto(f.Product.Id, ordered, 10m));
         return (svc, order.Id);
@@ -82,7 +82,7 @@ public class InventoryAdjustmentTests
         using var f = new TestFixture();
         f.Db.Inventories.Add(new Inventory { Id = Guid.NewGuid(), ProductId = f.Product.Id, LocationId = f.Location.Id, QtyOnHand = 100, Status = InventoryStatus.Available });
         await f.Db.SaveChangesAsync();
-        var svc = new InventoryService(f.Db, f.Mapper);
+        var svc = new InventoryService(f.Db);
 
         var adj = await svc.CreateAdjustmentAsync(new CreateAdjustmentDto(f.Product.Id, f.Location.Id, AdjType.Negative, 15, "Damaged"), f.User.Id);
         Assert.Equal(100, (await f.Db.Inventories.SingleAsync()).QtyOnHand);
