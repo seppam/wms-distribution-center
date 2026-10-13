@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WmsDistributionCenter.Api.Demo;
 
 namespace WmsDistributionCenter.Api.Data;
 
@@ -31,6 +32,15 @@ public sealed class DatabaseInitializer(IServiceProvider services, IConfiguratio
         else
         {
             await db.Database.EnsureCreatedAsync(ct); // in-memory provider used by tests
+        }
+
+        var demo = scope.ServiceProvider.GetRequiredService<DemoOptions>();
+        if (demo.Enabled)
+        {
+            // Demo mode: public accounts and the rich fictional dataset replace the other seeding paths.
+            logger.LogWarning("DEMO MODE is on: public demo accounts exist and the data is fictional. Never use this for real data.");
+            await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().EnsureAsync(ct);
+            return;
         }
 
         await DbSeeder.SeedAsync(db, new SeedOptions(

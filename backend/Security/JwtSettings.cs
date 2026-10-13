@@ -17,13 +17,13 @@ public sealed record JwtSettings(string Key, string Issuer, string Audience, int
 
         if (string.IsNullOrWhiteSpace(key))
         {
-            if (!env.IsDevelopment())
+            if (!env.IsDevelopment() && !config.GetValue<bool>("Demo:Enabled"))
                 throw new InvalidOperationException(
                     "Jwt:Key is not configured. Set the Jwt__Key environment variable to a random value of at least 32 characters.");
 
-            // Development only: an ephemeral key per process, so no signing key ever lives in the repository.
+            // Development and public demo mode only: an ephemeral key per process, so no signing key ever lives in the repository.
             key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
-            logger?.LogWarning("Jwt:Key not set: generated an ephemeral development key. Tokens become invalid when the API restarts.");
+            logger?.LogWarning("Jwt:Key not set: generated an ephemeral signing key. Tokens become invalid when the API restarts.");
         }
         else if (!env.IsDevelopment())
         {

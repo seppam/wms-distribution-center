@@ -37,6 +37,7 @@ public class AuthorizationMatrixTests : IAsyncLifetime
             ["POST api/auth/login"] = "anon",
             ["POST api/auth/register"] = "anon",
             ["GET api/auth/me"] = "read",
+            ["GET api/demo-info"] = "anon", ["POST api/demo/reset"] = "admin",
 
             ["GET api/users"] = "manage", ["GET api/users/{id}"] = "manage",
             ["POST api/users"] = "admin", ["PUT api/users/{id}"] = "admin", ["DELETE api/users/{id}"] = "admin",

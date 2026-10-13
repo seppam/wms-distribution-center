@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WmsDistributionCenter.Api.Data;
+using WmsDistributionCenter.Api.Demo;
 using WmsDistributionCenter.Api.Infrastructure;
 using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.Services;
@@ -21,6 +22,12 @@ builder.Services.AddDbContext<WmsDbContext>(options =>
             ? throw new InvalidOperationException(
                 "ConnectionStrings:DefaultConnection is not configured. Set ConnectionStrings__DefaultConnection or use appsettings.Development.json.")
             : builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Demo mode (off unless Demo:Enabled=true): see DemoOptions
+var demo = DemoOptions.Load(builder.Configuration);
+builder.Services.AddSingleton(demo);
+builder.Services.AddSingleton<DemoResetThrottle>();
+builder.Services.AddScoped<DemoDataSeeder>();
 
 // 2. JWT authentication (configuration is validated at startup, see JwtSettings)
 using var bootstrapLoggerFactory = LoggerFactory.Create(l => l.AddConsole());
@@ -207,7 +214,27 @@ app.MapGet("/readyz", async (WmsDbContext db, CancellationToken ct) =>
     await db.Database.CanConnectAsync(ct) ? Results.Ok(new { status = "ready" }) : Results.StatusCode(StatusCodes.Status503ServiceUnavailable))
     .AllowAnonymous();
 
+// CLI: `--reset-demo` restores the demo dataset and exits (documented in the README; demo mode only).
+if (args.Contains("--reset-demo"))
+{
+    if (!demo.Enabled)
+    {
+        Console.Error.WriteLine("--reset-demo only works when Demo:Enabled is true (Demo__Enabled=true).");
+        return 1;
+    }
+    await app.StartAsync(); // runs the migrations
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().ResetAsync();
+        Console.WriteLine("Demo data restored.");
+    }
+    finally { await app.StopAsync(); }
+    return 0;
+}
+
 app.Run();
+return 0;
 
 // Exposed for integration tests
 public partial class Program { }

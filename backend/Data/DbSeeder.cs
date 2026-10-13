@@ -23,16 +23,7 @@ public static class DbSeeder
 
     public static async Task SeedAsync(WmsDbContext db, SeedOptions options, ILogger? logger = null)
     {
-        // Seed the built-in roles (always required)
-        if (!await db.Roles.AnyAsync())
-        {
-            db.Roles.AddRange(
-                new Role { Id = Guid.NewGuid(), Name = AppRoles.Admin, Description = "Full system access, user and role administration", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = AppRoles.Supervisor, Description = "Plans work, manages master data, approves adjustments", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = AppRoles.Operator, Description = "Floor work: receive, pick, pack, ship, count, transfer", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = AppRoles.Viewer, Description = "Read-only access", IsSystem = true, CreatedAt = DateTime.UtcNow });
-            await db.SaveChangesAsync();
-        }
+        await EnsureRolesAsync(db);
 
         if (!await db.Users.AnyAsync())
         {
@@ -70,7 +61,19 @@ public static class DbSeeder
         if (options.DemoData) await SeedDemoDataAsync(db);
     }
 
-    private static User NewUser(string username, string email, string fullName, string password, Guid roleId) => new()
+    /// <summary>Seeds the four built-in roles when the table is empty (always required).</summary>
+    public static async Task EnsureRolesAsync(WmsDbContext db)
+    {
+        if (await db.Roles.AnyAsync()) return;
+        db.Roles.AddRange(
+            new Role { Id = Guid.NewGuid(), Name = AppRoles.Admin, Description = "Full system access, user and role administration", IsSystem = true, CreatedAt = DateTime.UtcNow },
+            new Role { Id = Guid.NewGuid(), Name = AppRoles.Supervisor, Description = "Plans work, manages master data, approves adjustments", IsSystem = true, CreatedAt = DateTime.UtcNow },
+            new Role { Id = Guid.NewGuid(), Name = AppRoles.Operator, Description = "Floor work: receive, pick, pack, ship, count, transfer", IsSystem = true, CreatedAt = DateTime.UtcNow },
+            new Role { Id = Guid.NewGuid(), Name = AppRoles.Viewer, Description = "Read-only access", IsSystem = true, CreatedAt = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+    }
+
+    internal static User NewUser(string username, string email, string fullName, string password, Guid roleId) => new()
     {
         Id = Guid.NewGuid(), Username = username, Email = email, FullName = fullName,
         PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), RoleId = roleId, IsActive = true,

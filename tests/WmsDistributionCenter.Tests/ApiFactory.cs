@@ -18,19 +18,29 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     public const string DemoPassword = "Test!Pass12345";
     private readonly string _dbName = Guid.NewGuid().ToString();
-    private readonly InMemoryDatabaseRoot _root = new();
+    // One shared root (distinct database names) keeps EF from building a service provider per factory.
+    private static readonly InMemoryDatabaseRoot _root = new();
     private readonly int _authPermits;
     private readonly bool _allowRegistration;
+    private readonly bool _demo;
+    private readonly int _resetPermits;
+    private readonly string _environment;
+    private readonly string? _demoPassword;
 
-    public ApiFactory(int authPermits = 10_000, bool allowRegistration = true)
+    public ApiFactory(int authPermits = 10_000, bool allowRegistration = true, bool demo = false, int resetPermits = 3,
+        string environment = "Testing", string? demoPassword = DemoPassword)
     {
         _authPermits = authPermits;
         _allowRegistration = allowRegistration;
+        _demo = demo;
+        _resetPermits = resetPermits;
+        _environment = environment;
+        _demoPassword = demoPassword;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(_environment);
         builder.UseSetting("ConnectionStrings:DefaultConnection", "Host=unused");
         builder.UseSetting("Jwt:Key", "integration-test-signing-key-A1b2C3d4E5f6G7h8");
         builder.UseSetting("Jwt:Issuer", "test");
@@ -38,6 +48,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Auth:AllowSelfRegistration", _allowRegistration ? "true" : "false");
         builder.UseSetting("RateLimiting:AuthPermitLimit", _authPermits.ToString());
         builder.UseSetting("AllowedOrigins:0", "http://localhost:5173");
+        if (_demo)
+        {
+            builder.UseSetting("Demo:Enabled", "true");
+            if (_demoPassword != null) builder.UseSetting("Demo:Password", _demoPassword);
+            builder.UseSetting("Demo:ResetPermitLimit", _resetPermits.ToString());
+        }
 
         builder.ConfigureServices(services =>
         {
@@ -62,6 +78,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         var f = new ApiFactory(authPermits, allowRegistration);
         await f.SeedAsync();
+        return f;
+    }
+
+    /// <summary>A factory in public demo mode: the host start seeds the accounts and the full fictional dataset.</summary>
+    public static ApiFactory CreateDemo(int resetPermits = 3, string environment = "Testing")
+    {
+        var f = new ApiFactory(demo: true, resetPermits: resetPermits, environment: environment);
+        _ = f.Services; // start the host (runs DatabaseInitializer)
         return f;
     }
 
