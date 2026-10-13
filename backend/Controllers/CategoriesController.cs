@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Category;
@@ -48,6 +49,7 @@ public class CategoriesController : ControllerBase
         return Ok(new CategoryResponseDto(cat.Id, cat.Name, cat.ParentId, null, cat.Level, cat.Description));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
     {
@@ -65,6 +67,7 @@ public class CategoriesController : ControllerBase
             new CategoryResponseDto(cat.Id, cat.Name, cat.ParentId, null, cat.Level, cat.Description));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCategoryDto dto)
     {
@@ -77,6 +80,7 @@ public class CategoriesController : ControllerBase
         return Ok(new CategoryResponseDto(cat.Id, cat.Name, cat.ParentId, null, cat.Level, cat.Description));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

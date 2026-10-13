@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.Inventory;
 using WmsDistributionCenter.Api.Services;
 
@@ -39,6 +40,7 @@ public class InventoryController : ControllerBase
         return Ok(adj);
     }
 
+    [Authorize(Policy = Policies.Operate)]
     [HttpPost("adjustments")]
     public async Task<IActionResult> CreateAdjustment([FromBody] CreateAdjustmentDto dto)
     {
@@ -48,6 +50,7 @@ public class InventoryController : ControllerBase
         return Ok(adj);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost("adjustments/{id:guid}/approve")]
     public async Task<IActionResult> ApproveAdjustment(Guid id)
     {

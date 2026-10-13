@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.User;
 using WmsDistributionCenter.Api.Services;
 
@@ -17,6 +19,7 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -24,6 +27,7 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -31,6 +35,7 @@ public class UsersController : ControllerBase
         return user == null ? NotFound() : Ok(user);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
     {
@@ -38,6 +43,7 @@ public class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto)
     {
@@ -45,9 +51,12 @@ public class UsersController : ControllerBase
         return user == null ? NotFound() : Ok(user);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
+        if (User.FindFirstValue(ClaimTypes.NameIdentifier) == id.ToString())
+            return BadRequest(new { message = "You cannot delete your own account." });
         var result = await _userService.DeleteAsync(id);
         return result ? NoContent() : NotFound();
     }

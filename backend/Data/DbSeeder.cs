@@ -3,52 +3,79 @@ using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.Enums;
 using WmsDistributionCenter.Api.Models;
+using WmsDistributionCenter.Api.Security;
 
 namespace WmsDistributionCenter.Api.Data;
 
+/// <summary>Seeding options. Demo credentials are only ever created when running in Development.</summary>
+public sealed record SeedOptions(
+    bool DemoData = false,
+    bool IsDevelopment = false,
+    string? DemoPassword = null,
+    string? AdminUsername = null,
+    string? AdminEmail = null,
+    string? AdminPassword = null);
+
 public static class DbSeeder
 {
-    public static async Task SeedAsync(WmsDbContext db, bool demoData = false)
-    {
-        // Ensure DB is created
-        await db.Database.EnsureCreatedAsync();
+    /// <summary>Documented, throwaway password for the Development-only demo accounts.</summary>
+    public const string DefaultDemoPassword = "Demo!Pass123";
 
-        // Seed roles
+    public static async Task SeedAsync(WmsDbContext db, SeedOptions options, ILogger? logger = null)
+    {
+        // Seed the built-in roles (always required)
         if (!await db.Roles.AnyAsync())
         {
-            var roles = new[]
-            {
-                new Role { Id = Guid.NewGuid(), Name = "Admin", Description = "Full system access", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = "Supervisor", Description = "Warehouse supervisor", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = "Operator", Description = "Warehouse operator", IsSystem = true, CreatedAt = DateTime.UtcNow },
-                new Role { Id = Guid.NewGuid(), Name = "Viewer", Description = "Read-only access", IsSystem = true, CreatedAt = DateTime.UtcNow }
-            };
-            db.Roles.AddRange(roles);
+            db.Roles.AddRange(
+                new Role { Id = Guid.NewGuid(), Name = AppRoles.Admin, Description = "Full system access, user and role administration", IsSystem = true, CreatedAt = DateTime.UtcNow },
+                new Role { Id = Guid.NewGuid(), Name = AppRoles.Supervisor, Description = "Plans work, manages master data, approves adjustments", IsSystem = true, CreatedAt = DateTime.UtcNow },
+                new Role { Id = Guid.NewGuid(), Name = AppRoles.Operator, Description = "Floor work: receive, pick, pack, ship, count, transfer", IsSystem = true, CreatedAt = DateTime.UtcNow },
+                new Role { Id = Guid.NewGuid(), Name = AppRoles.Viewer, Description = "Read-only access", IsSystem = true, CreatedAt = DateTime.UtcNow });
             await db.SaveChangesAsync();
         }
 
-        // Seed admin user
         if (!await db.Users.AnyAsync())
         {
-            var adminRole = await db.Roles.FirstAsync(r => r.Name == "Admin");
-            var admin = new User
+            var roles = await db.Roles.ToDictionaryAsync(r => r.Name);
+            if (options.DemoData && options.IsDevelopment)
             {
-                Id = Guid.NewGuid(),
-                Username = "admin",
-                Email = "admin@example.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-                FullName = "System Administrator",
-                RoleId = adminRole.Id,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            db.Users.Add(admin);
-            await db.SaveChangesAsync();
+                var password = string.IsNullOrWhiteSpace(options.DemoPassword) ? DefaultDemoPassword : options.DemoPassword;
+                foreach (var (username, role, fullName) in new[]
+                {
+                    ("admin", AppRoles.Admin, "Demo Administrator"),
+                    ("supervisor", AppRoles.Supervisor, "Demo Supervisor"),
+                    ("operator", AppRoles.Operator, "Demo Operator"),
+                    ("viewer", AppRoles.Viewer, "Demo Viewer")
+                })
+                    db.Users.Add(NewUser(username, $"{username}@example.com", fullName, password, roles[role].Id));
+                await db.SaveChangesAsync();
+                logger?.LogWarning("Seeded Development demo accounts (admin, supervisor, operator, viewer). Never enable this outside local development.");
+            }
+            else if (!string.IsNullOrWhiteSpace(options.AdminPassword))
+            {
+                if (options.AdminPassword.Length < 12)
+                    throw new InvalidOperationException("Seed:AdminPassword must be at least 12 characters.");
+                var username = string.IsNullOrWhiteSpace(options.AdminUsername) ? "admin" : options.AdminUsername;
+                var email = string.IsNullOrWhiteSpace(options.AdminEmail) ? $"{username}@example.com" : options.AdminEmail;
+                db.Users.Add(NewUser(username, email, "Administrator", options.AdminPassword, roles[AppRoles.Admin].Id));
+                await db.SaveChangesAsync();
+                logger?.LogInformation("Created the bootstrap administrator '{User}' from configuration.", username);
+            }
+            else
+            {
+                logger?.LogWarning("No users exist. Set Seed__AdminPassword (12+ chars) to create the first administrator.");
+            }
         }
 
-        if (demoData) await SeedDemoDataAsync(db);
+        if (options.DemoData) await SeedDemoDataAsync(db);
     }
+
+    private static User NewUser(string username, string email, string fullName, string password, Guid roleId) => new()
+    {
+        Id = Guid.NewGuid(), Username = username, Email = email, FullName = fullName,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), RoleId = roleId, IsActive = true,
+        CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+    };
 
     /// <summary>Fictional demo master data and stock so the UI is not empty. Safe to skip in production.</summary>
     private static async Task SeedDemoDataAsync(WmsDbContext db)

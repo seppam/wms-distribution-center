@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.Product;
 using WmsDistributionCenter.Api.Services;
 
@@ -31,6 +32,7 @@ public class ProductsController : ControllerBase
         return product == null ? NotFound() : Ok(product);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
@@ -38,6 +40,7 @@ public class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
@@ -45,6 +48,7 @@ public class ProductsController : ControllerBase
         return product == null ? NotFound() : Ok(product);
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

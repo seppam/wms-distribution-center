@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Warehouse;
@@ -33,6 +34,7 @@ public class WarehousesController : ControllerBase
         return w == null ? NotFound() : Ok(new WarehouseResponseDto(w.Id, w.Code, w.Name, w.Address, w.City, w.Capacity, w.IsActive, w.CreatedAt));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
     {
@@ -52,6 +54,7 @@ public class WarehousesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = w.Id }, new WarehouseResponseDto(w.Id, w.Code, w.Name, w.Address, w.City, w.Capacity, w.IsActive, w.CreatedAt));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWarehouseDto dto)
     {
@@ -66,6 +69,7 @@ public class WarehousesController : ControllerBase
         return Ok(new WarehouseResponseDto(w.Id, w.Code, w.Name, w.Address, w.City, w.Capacity, w.IsActive, w.CreatedAt));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

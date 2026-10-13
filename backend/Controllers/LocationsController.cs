@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Location;
@@ -51,6 +52,7 @@ public class LocationsController : ControllerBase
             l.LocationType, l.MaxCapacity, l.Status));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateLocationDto dto)
     {
@@ -77,6 +79,7 @@ public class LocationsController : ControllerBase
             l.LocationType, l.MaxCapacity, l.Status));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLocationDto dto)
     {
@@ -99,6 +102,7 @@ public class LocationsController : ControllerBase
             l.LocationType, l.MaxCapacity, l.Status));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

@@ -5,7 +5,7 @@ namespace WmsDistributionCenter.Api.DTOs.User;
 public record CreateUserDto(
     [Required] string Username,
     [Required][EmailAddress] string Email,
-    [Required] string Password,
+    [Required][MinLength(10)] string Password,
     [Required] string FullName,
     [Required] Guid RoleId,
     Guid? WarehouseId,
@@ -14,7 +14,7 @@ public record CreateUserDto(
 
 public record UpdateUserDto(
     [EmailAddress] string? Email,
-    string? Password,
+    [MinLength(10)] string? Password,
     string? FullName,
     Guid? RoleId,
     Guid? WarehouseId,

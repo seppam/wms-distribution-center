@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5243/api",
+      "value": "http://localhost:5300/api",
       "type": "string"
     },
     {
@@ -64,7 +64,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"Demo!Pass123\"\n}"
             }
           }
         },

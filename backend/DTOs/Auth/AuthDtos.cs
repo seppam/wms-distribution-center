@@ -14,9 +14,9 @@ public record LoginResponse(
 );
 
 public record RegisterRequest(
-    [Required] string Username,
+    [Required][StringLength(100, MinimumLength = 3)] string Username,
     [Required][EmailAddress] string Email,
-    [Required] string Password,
+    [Required][MinLength(10)] string Password,
     [Required] string FullName,
     Guid? RoleId,
     string? Phone,

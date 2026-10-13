@@ -38,7 +38,7 @@
 │   └── BCrypt Password Hashing                           │
 │                                                          │
 │   Runtime: Kestrel Web Server (no IIS/IIS Express)      │
-│   Port: 5243 (Development)                               │
+│   Port: 5300 (Development)                               │
 └────────────────────────┬────────────────────────────────┘
                          │ Npgsql / ADO.NET
                          ▼
@@ -174,7 +174,7 @@ CREATE INDEX ix_roles_permissions
 
 ### 3.1 Authentication
 
-**Base URL:** `http://localhost:5243/api`
+**Base URL:** `http://localhost:5300/api`
 
 #### POST /auth/login
 **Description:** Authenticate user and receive JWT token.
@@ -183,14 +183,14 @@ CREATE INDEX ix_roles_permissions
 ```json
 {
   "username": "admin",
-  "password": "admin123"
+  "password": "Demo!Pass123"
 }
 ```
 
 **Response (200):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "<jwt>",
   "expiresAt": "2026-06-15T08:00:00Z",
   "user": {
     "id": "4645b3d3-1da8-4a8f-b70a-0e6280ea8dff",
@@ -218,7 +218,7 @@ CREATE INDEX ix_roles_permissions
 ```json
 {
   "username": "newuser",
-  "password": "SecurePass123",
+  "password": "<your-password>",
   "email": "newuser@example.com",
   "fullName": "New User",
   "roleId": "uuid-of-role"
@@ -688,7 +688,7 @@ frontend/src/
     "ExpiryMinutes": 480
   },
   "AllowedOrigins": [
-    "http://localhost:3000",
+    "http://localhost:5173",
     "http://localhost:5173"
   ]
 }
@@ -697,7 +697,7 @@ frontend/src/
 **Frontend (`.env`):**
 
 ```env
-VITE_API_URL=http://localhost:5243/api
+VITE_API_URL=http://localhost:5300/api
 ```
 
 ### 6.2 Secrets Management (Production)

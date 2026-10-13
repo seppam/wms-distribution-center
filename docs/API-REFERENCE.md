@@ -1,6 +1,6 @@
 # API Reference
 ## WMS Distribution Center — Warehouse Management System
-**Base URL:** `http://localhost:5243/api`
+**Base URL:** `http://localhost:5300/api`
 
 ---
 
@@ -10,7 +10,7 @@ All endpoints except `/auth/login` and `/auth/register` require authentication.
 Add the JWT token to every request header:
 
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <jwt>
 ```
 
 ---
@@ -216,7 +216,7 @@ A Postman collection with all endpoints is available at:
 ### Postman Setup
 
 1. Create a new **Environment** in Postman:
-   - Variable: `baseUrl` = `http://localhost:5243/api`
+   - Variable: `baseUrl` = `http://localhost:5300/api`
    - Variable: `token` (leave empty)
 
 2. **Login** request → save token to environment variable:

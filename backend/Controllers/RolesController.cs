@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.Role;
 using WmsDistributionCenter.Api.Services;
 
@@ -7,7 +8,7 @@ namespace WmsDistributionCenter.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Policy = Policies.AdminOnly)]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Zone;
@@ -37,6 +38,7 @@ public class ZonesController : ControllerBase
         return z == null ? NotFound() : Ok(new ZoneResponseDto(z.Id, z.WarehouseId, z.Warehouse.Name, z.Name, z.ZoneType, z.Description, z.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateZoneDto dto)
     {
@@ -55,6 +57,7 @@ public class ZonesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = z.Id }, new ZoneResponseDto(z.Id, z.WarehouseId, z.Warehouse.Name, z.Name, z.ZoneType, z.Description, z.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateZoneDto dto)
     {
@@ -69,6 +72,7 @@ public class ZonesController : ControllerBase
         return Ok(new ZoneResponseDto(z.Id, z.WarehouseId, z.Warehouse.Name, z.Name, z.ZoneType, z.Description, z.IsActive));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.Auth;
 using WmsDistributionCenter.Api.Models;
 using WmsDistributionCenter.Api.Services;
@@ -8,11 +8,7 @@ namespace WmsDistributionCenter.Tests;
 
 public class AuthTests
 {
-    private static IConfiguration Config() => new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-    {
-        ["Jwt:Key"] = "unit-test-key-unit-test-key-unit-test-key-0123456789",
-        ["Jwt:Issuer"] = "test", ["Jwt:Audience"] = "test", ["Jwt:ExpiryMinutes"] = "5"
-    }).Build();
+    private static JwtSettings Config() => new("unit-test-key-unit-test-key-unit-test-key-0123456789", "test", "test", 5);
 
     [Fact]
     public async Task Register_CannotSelfAssignAdminRole()

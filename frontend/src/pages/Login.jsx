@@ -72,7 +72,9 @@ export default function Login() {
             {loading ? <span className="spinner"></span> : 'Sign In'}
           </button>
 
-          <p className="login-hint">Default: admin / admin123</p>
+          {import.meta.env.DEV && (
+            <p className="login-hint">Local demo: admin / Demo!Pass123 (Development seed only)</p>
+          )}
         </form>
       </div>
     </div>

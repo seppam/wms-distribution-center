@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WmsDistributionCenter.Api.DTOs.Auth;
 using WmsDistributionCenter.Api.Services;
 
@@ -11,12 +12,16 @@ namespace WmsDistributionCenter.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IConfiguration _config;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IConfiguration config)
     {
         _authService = authService;
+        _config = config;
     }
 
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
@@ -26,9 +31,14 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Public self-registration (least-privileged Viewer role). Disabled unless Auth:AllowSelfRegistration is true.</summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        if (!_config.GetValue<bool>("Auth:AllowSelfRegistration"))
+            return NotFound(new { message = "Self-registration is disabled. Ask an administrator for an account." });
         var result = await _authService.RegisterAsync(request);
         if (result == null)
             return BadRequest(new { message = "Username or email already exists" });

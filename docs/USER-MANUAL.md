@@ -21,7 +21,7 @@
 
 ### 1.1 Logging In
 
-1. Open your browser and navigate to: `http://localhost:3000`
+1. Open your browser and navigate to: `http://localhost:5173`
 2. Enter your **Username** and **Password**
 3. Click **Sign In**
 4. Upon successful login, you will be redirected to the Dashboard
@@ -30,7 +30,7 @@
 
 | Role | Username | Password (demo seed only) |
 |------|----------|----------|
-| Admin | `admin` | `admin123` |
+| Admin | `admin` | `Demo!Pass123` |
 
 > ⚠️ **Security Notice:** Change default passwords immediately after first login.
 

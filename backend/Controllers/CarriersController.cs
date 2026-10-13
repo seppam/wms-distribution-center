@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Carrier;
@@ -33,6 +34,7 @@ public class CarriersController : ControllerBase
         return c == null ? NotFound() : Ok(new CarrierResponseDto(c.Id, c.Name, c.ContactPerson, c.Phone, c.Email, c.VehicleType, c.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCarrierDto dto)
     {
@@ -51,6 +53,7 @@ public class CarriersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = c.Id }, new CarrierResponseDto(c.Id, c.Name, c.ContactPerson, c.Phone, c.Email, c.VehicleType, c.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCarrierDto dto)
     {
@@ -66,6 +69,7 @@ public class CarriersController : ControllerBase
         return Ok(new CarrierResponseDto(c.Id, c.Name, c.ContactPerson, c.Phone, c.Email, c.VehicleType, c.IsActive));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

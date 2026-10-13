@@ -6,18 +6,20 @@ using Microsoft.IdentityModel.Tokens;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Auth;
 using WmsDistributionCenter.Api.Models;
+using WmsDistributionCenter.Api.Security;
 
 namespace WmsDistributionCenter.Api.Services;
 
 public class AuthService : IAuthService
 {
     private readonly WmsDbContext _db;
-    private readonly IConfiguration _config;
+    private static readonly string DummyHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
+    private readonly JwtSettings _jwt;
 
-    public AuthService(WmsDbContext db, IConfiguration config)
+    public AuthService(WmsDbContext db, JwtSettings jwt)
     {
         _db = db;
-        _config = config;
+        _jwt = jwt;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -27,14 +29,17 @@ public class AuthService : IAuthService
             .Include(u => u.Warehouse)
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Always run a hash verification so response time does not reveal whether the username exists.
+        var hash = user?.PasswordHash ?? DummyHash;
+        var valid = BCrypt.Net.BCrypt.Verify(request.Password, hash);
+        if (user == null || !valid)
             return null;
 
         user.LastLogin = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
         var token = GenerateToken(user);
-        var expiry = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "480"));
+        var expiry = DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes);
 
         return new LoginResponse(
             token,
@@ -57,7 +62,7 @@ public class AuthService : IAuthService
             return null;
 
         // Public self-registration always gets the least-privileged role. Admins assign roles via /api/users.
-        var roleId = (await _db.Roles.FirstOrDefaultAsync(r => r.Name == "Viewer"))?.Id
+        var roleId = (await _db.Roles.FirstOrDefaultAsync(r => r.Name == AppRoles.Viewer))?.Id
             ?? throw new InvalidOperationException("Default role not found");
 
         var user = new User
@@ -82,7 +87,7 @@ public class AuthService : IAuthService
         await _db.Entry(user).Reference(u => u.Warehouse).LoadAsync();
 
         var token = GenerateToken(user);
-        var expiry = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "480"));
+        var expiry = DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes);
 
         return new LoginResponse(
             token,
@@ -121,7 +126,7 @@ public class AuthService : IAuthService
 
     private string GenerateToken(User user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -133,10 +138,10 @@ public class AuthService : IAuthService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _jwt.Issuer,
+            audience: _jwt.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "480")),
+            expires: DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes),
             signingCredentials: creds
         );
 

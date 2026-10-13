@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using WmsDistributionCenter.Api.DTOs.InboundReceipt;
 using WmsDistributionCenter.Api.Services;
 
@@ -32,6 +33,7 @@ public class InboundReceiptsController : ControllerBase
         return receipt == null ? NotFound() : Ok(receipt);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateInboundReceiptDto dto)
     {
@@ -39,6 +41,7 @@ public class InboundReceiptsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = receipt.Id }, receipt);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInboundReceiptDto dto)
     {
@@ -46,6 +49,7 @@ public class InboundReceiptsController : ControllerBase
         return receipt == null ? NotFound() : Ok(receipt);
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -53,6 +57,7 @@ public class InboundReceiptsController : ControllerBase
         return result ? NoContent() : NotFound();
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost("{id:guid}/items")]
     public async Task<IActionResult> AddItem(Guid id, [FromBody] AddReceiptItemDto dto)
     {
@@ -60,6 +65,7 @@ public class InboundReceiptsController : ControllerBase
         return Ok(item);
     }
 
+    [Authorize(Policy = Policies.Operate)]
     [HttpPost("{id:guid}/receive")]
     public async Task<IActionResult> ReceiveItem(Guid id, [FromBody] ReceiveItemDto dto)
     {
@@ -69,6 +75,7 @@ public class InboundReceiptsController : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Policy = Policies.Operate)]
     [HttpPost("{id:guid}/complete")]
     public async Task<IActionResult> Complete(Guid id)
     {

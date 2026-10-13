@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WmsDistributionCenter.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using WmsDistributionCenter.Api.Data;
 using WmsDistributionCenter.Api.DTOs.Supplier;
@@ -33,6 +34,7 @@ public class SuppliersController : ControllerBase
         return s == null ? NotFound() : Ok(new SupplierResponseDto(s.Id, s.Code, s.Name, s.ContactPerson, s.Email, s.Phone, s.Address, s.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSupplierDto dto)
     {
@@ -52,6 +54,7 @@ public class SuppliersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = s.Id }, new SupplierResponseDto(s.Id, s.Code, s.Name, s.ContactPerson, s.Email, s.Phone, s.Address, s.IsActive));
     }
 
+    [Authorize(Policy = Policies.Manage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSupplierDto dto)
     {
@@ -67,6 +70,7 @@ public class SuppliersController : ControllerBase
         return Ok(new SupplierResponseDto(s.Id, s.Code, s.Name, s.ContactPerson, s.Email, s.Phone, s.Address, s.IsActive));
     }
 
+    [Authorize(Policy = Policies.AdminOnly)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
