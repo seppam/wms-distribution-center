@@ -1,419 +1,94 @@
 # User Manual
-## WMS Distribution Center — Warehouse Management System
-**Portfolio case study | Distribution Center**
-
----
-
-## Table of Contents
-1. [Getting Started](#1-getting-started)
-2. [Dashboard Overview](#2-dashboard-overview)
-3. [Master Data Management](#3-master-data-management)
-4. [Inbound / Receiving](#4-inbound--receiving)
-5. [Inventory Management](#5-inventory-management)
-6. [Outbound / Orders](#6-outbound--orders)
-7. [User & Role Administration](#7-user--role-administration)
-8. [Reports & KPIs](#8-reports--kpis)
-9. [Troubleshooting](#9-troubleshooting)
-
----
-
-## 1. Getting Started
-
-### 1.1 Logging In
-
-1. Open your browser and navigate to: `http://localhost:5173`
-2. Enter your **Username** and **Password**
-3. Click **Sign In**
-4. Upon successful login, you will be redirected to the Dashboard
-
-**Default Credentials:**
-
-| Role | Username | Password (demo seed only) |
-|------|----------|----------|
-| Admin | `admin` | `Demo!Pass123` |
-
-> ⚠️ **Security Notice:** Change default passwords immediately after first login.
-
-### 1.2 Understanding the Interface
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  [Logo] WMS Distribution Center              [Admin ▼]  [Logout]        │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌──────────┐ ┌──────────────────────────────────────────────┐  │
-│ │          │ │                                              │  │
-│ │ SIDEBAR  │ │          MAIN CONTENT AREA                   │  │
-│ │          │ │                                              │  │
-│ │ Dashboard│ │  Page title + subtitle                        │  │
-│ │ ─────────│ │  ────────────────────────────────────────     │  │
-│ │ Master   │ │                                              │  │
-│ │  Products│ │  [Content: Tables, Forms, Charts]            │  │
-│ │  Categories│                                              │  │
-│ │  ...     │ │                                              │  │
-│ │ ─────────│ │                                              │  │
-│ │ Warehouse│ │                                              │  │
-│ │ ─────────│ │                                              │  │
-│ │ Inventory│ │                                              │  │
-│ │ ─────────│ │                                              │  │
-│ │ Inbound  │ │                                              │  │
-│ │ Outbound │ │                                              │  │
-│ │ ─────────│ │                                              │  │
-│ │ Admin ▼  │ │                                              │  │
-│ │  Users   │ │                                              │  │
-│ │  Roles   │ │                                              │  │
-│ └──────────┘ └──────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 1.3 Navigation Menu
-
-The sidebar shows only the modules your role has access to:
-- **Dashboard** — Visible to all roles
-- **Master Data** — Products, Categories, Suppliers, Carriers, UOMs
-- **Warehouse** — Warehouses, Zones, Locations (Bins)
-- **Inventory** — Stock levels and transactions
-- **Inbound** — Receiving receipts
-- **Outbound** — Orders, Pick Tasks, Shipments
-- **Admin** — Users, Roles (Admin only)
-
----
-
-## 2. Dashboard Overview
-
-The Dashboard provides a real-time overview of DC operations.
-
-### 2.1 KPI Cards
-
-| Card | Description | Refresh |
-|------|-------------|---------|
-| **Total SKUs** | Number of active products in the system | Real-time |
-| **Storage Locations** | Number of active bin locations | Real-time |
-| **Today's Receipts** | Number of inbound receipts received today | Real-time |
-| **Today's Shipments** | Number of outbound shipments dispatched today | Real-time |
-| **Pending Picks** | Number of pick tasks awaiting completion | Real-time |
-| **Low Stock Alerts** | Products below minimum stock threshold | Real-time |
-| **Inventory Accuracy** | % of inventory counts matching system records | Daily |
-| **Receiving Accuracy** | % of receipts with no discrepancies | Daily |
-
-### 2.2 Recent Activity Tables
-
-- **Recent Inbound Receipts** — Last 5 receipts with status
-- **Pending Outbound Orders** — Orders awaiting fulfillment
-
----
 
-## 3. Master Data Management
+How to work in the WMS web application. All names, quantities and accounts in this manual and in the screenshots are fictional demo data.
 
-### 3.1 Products
+## 1. Signing in
 
-Products are the core SKU master data. Every product has a unique SKU code.
+Open the web app (`http://localhost:5173` for local development, `http://localhost:5174` with Docker) and sign in.
+In local development with the demo seed there are four accounts, one per role, all with the documented demo password
+`Demo!Pass123`: `admin`, `supervisor`, `operator`, `viewer`. In any other setup the first administrator is created from the
+`ADMIN_PASSWORD` setting (see the README) and creates further users under **Users**.
 
-**To add a new product:**
-1. Navigate to **Master Data → Products**
-2. Click **+ Add New**
-3. Fill in the required fields:
-   - **SKU** — Unique product code (e.g., `SI-000001`)
-   - **Name** — Product display name
-   - **Category** — Select from category tree
-   - **UOM** — Unit of Measure (PCS, CTN, PLT)
-   - **Weight (kg)** — Unit weight
-   - **Volume (m³)** — Unit volume
-   - **Barcode** — Product barcode (EAN-13, etc.)
-   - **Min Stock** — Reorder threshold
-   - **Max Stock** — Maximum stock level
-4. Click **Create**
+Failed sign-ins show "Invalid username or password". After ten attempts within a minute from one address the server
+answers "Too many attempts" for a while.
 
-**To edit a product:** Click the **Edit** (pencil) icon on any product row.
+## 2. Roles: what you can do
 
-### 3.2 Categories
+| | Viewer | Operator | Supervisor | Admin |
+|---|---|---|---|---|
+| Look at everything | yes | yes | yes | yes |
+| Receive and put away goods, complete receipts | | yes | yes | yes |
+| Confirm picks, pack, ship, mark delivered | | yes | yes | yes |
+| Propose adjustments, create transfers, receive returns | | yes | yes | yes |
+| Plan receipts and orders, allocate stock, assign pickers, cancel orders | | | yes | yes |
+| Approve or reject adjustments, process returns | | | yes | yes |
+| Edit master data (products, locations, suppliers, ...) | | | yes | yes |
+| Delete master data, manage users and roles | | | | yes |
 
-Categories support a **hierarchical tree structure** (e.g., Food → Snacks → Chips).
+Buttons you are not allowed to use are hidden. The server enforces the same rules, so a hidden action can never be forced.
 
-**To add a category:**
-1. Navigate to **Master Data → Categories**
-2. Click **+ Add New**
-3. Enter category name
-4. Optionally select a **Parent Category** to create a subcategory
-5. Click **Create**
+## 3. The warehouse cycle
 
-### 3.3 Warehouses
+### 3.1 Receiving and put-away (Inbound > Receipts)
 
-Define your DC facilities.
+1. A supervisor chooses **New receipt**: supplier, warehouse, PO number and the expected lines (product, quantity, cost, lot, expiry).
+2. When the truck arrives an operator opens the receipt and chooses **Receive** on a line: received quantity, how many are
+   damaged, and the **put-away location**. Good stock is placed in that bin immediately; damaged goods are recorded but not stocked.
+   You can receive a line again to correct the count: only the difference is posted.
+3. **Complete receipt** closes it as *Received* (everything matched) or *Partial* (something short, damaged or untouched).
 
-**Warehouse Code Examples:**
-- `DC-MAIN` — Main Distribution Center
-- `DC-TNG` — DC Tangerang
-- `DC-SEC` — Secondary DC
+### 3.2 Orders: allocate, pick, pack, ship (Outbound)
 
-### 3.4 Zones
+1. A supervisor chooses **New order**: warehouse, priority, destination, due date and lines. The form shows how much stock
+   is available for each product.
+2. Open the order and choose **Allocate stock and start picking**. Stock is reserved first-expiry-first-out and one pick task per
+   bin is created. If any line cannot be fully covered, nothing is reserved and the message names the product and the shortfall.
+3. On **Pick Tasks** an operator enters the quantity found and chooses **Confirm**. Picking more than requested is rejected;
+   picking less records a *short pick* and releases the missing reservation. The order becomes *Picked* when every task is done.
+4. Open the order again: **Pack** (carton number and weight), then **Ship** (carrier, tracking, vehicle, driver). Shipping
+   deducts the stock and writes the movement to the ledger. **Shipments > Mark delivered** completes the order.
+5. A supervisor can **Cancel order** at any point before shipping; reserved stock is released.
 
-Zones divide a warehouse into functional areas.
+### 3.3 Adjustments (Adjustments)
 
-| Zone Type | Description |
-|-----------|-------------|
-| **Receiving** | Inbound dock area |
-| **Storage** | Main racking/storage area |
-| **Packing** | Packing station area |
-| **Shipping** | Outbound dock area |
-| **Returns** | Return processing area |
-| **Staging** | Temporary holding area |
+An operator proposes a correction: *decrease*, *increase* or *recount* (set the counted quantity). Nothing changes until a
+supervisor chooses **Approve**; the quantity is then recalculated against the current stock and a ledger entry is written.
+Stock cannot go below zero or below what is reserved for orders. Supervisors cannot approve their own proposals unless they are Admin.
 
-**Location Code Structure:** `Zone-Aisle-Rack-Level-Bin`
-Example: `A-01-03-02` = Zone A, Aisle 01, Rack 03, Level 02
+### 3.4 Transfers (Transfers)
 
-### 3.5 Locations (Bins)
+Choose the stock to move (only unreserved stock is listed), the destination bin and the quantity, then **Complete** the
+transfer to move it. Lots are never mixed in one bin. A draft transfer can be cancelled.
 
-Each storage position in the warehouse is a **Location**.
+### 3.5 Returns (Returns)
 
-**Location Types:**
-| Type | Description |
-|------|-------------|
-| **Pick** | Primary picking face — high-velocity items |
-| **Floor** | Floor-level storage |
-| **Bulk** | Reserve/bulk storage |
-| **Reserved** | Quarantine, inspection hold |
-| **Damage** | Damaged goods area |
+An operator chooses **Receive return** (optionally against a shipped order; the quantity is checked against what shipped).
+A supervisor then chooses **Process**: *Restock* puts good items back into a bin, *Refurbish*, *Dispose* and *Write off*
+only record the decision. Items that are not in good condition cannot be restocked.
 
----
+### 3.6 Inventory and the ledger (Inventory)
 
-## 4. Inbound / Receiving
+**Stock** shows on-hand, reserved and available quantity per bin. **Movement ledger** lists every inbound, outbound,
+adjustment, transfer and return posting with the quantity before and after; entries are never edited or deleted.
 
-The inbound process handles goods arriving from suppliers.
+## 4. Master data
 
-### 4.1 Process Flow
+Products, categories, units of measure, suppliers, carriers, warehouses, zones and locations are maintained on their own
+pages (supervisors edit, admins delete). A product needs a unit of measure; locations belong to a zone, zones to a warehouse.
+Deleting a record that is still referenced is refused with an explanation.
 
-```
-Supplier Shipment → PO/ASN Match → Receiving → QC Check → Put-away → Inventory Update
-```
+## 5. Users and roles (Admin)
 
-### 4.2 Creating a Receipt
+Admins create users with a role (password of at least 10 characters), deactivate them, or delete them (not themselves).
+A role change or deactivation takes effect on the next request. The four built-in roles cannot be renamed or deleted;
+custom roles only get read access.
 
-1. Navigate to **Inbound → Receipts**
-2. Click **+ New Receipt**
-3. Fill in:
-   - **Supplier** — Select from supplier list
-   - **PO Number** — Purchase Order reference
-   - **ASN Number** — Advance Shipping Notice (optional)
-   - **Expected Date** — Expected arrival date
-   - **Dock Door** — Assigned receiving dock
-4. Click **Create**
+## 6. Troubleshooting
 
-### 4.3 Receiving Items
-
-Once the truck arrives and goods are physically received:
-
-1. Open the receipt record
-2. Click **Receive Items**
-3. For each item:
-   - Enter **Received Quantity** (expected vs. actual)
-   - Enter **Damaged Quantity** (if any)
-   - Enter **Lot Number** (from supplier label)
-   - Enter **Expiry Date** (if applicable)
-   - Select **Put-away Location** (where the goods will be stored)
-4. Click **Confirm Receipt**
-
-### 4.4 Status Definitions
-
-| Status | Meaning |
-|--------|---------|
-| **Draft** | Receipt created but receiving not started |
-| **In Progress** | Receiving underway |
-| **Received** | All items fully received |
-| **Partial** | Some items partially received |
-| **Cancelled** | Receipt cancelled |
-
----
-
-## 5. Inventory Management
-
-### 5.1 Viewing Stock Levels
-
-Navigate to **Inventory** to see all stock levels.
-
-**Filters:**
-- By Product (search by SKU or name)
-- By Location (search by location code)
-- By Status (Available / Reserved / Hold / Damaged)
-- Low Stock Only
-
-### 5.2 Stock Adjustment
-
-When physical count differs from system record:
-
-1. Navigate to **Inventory**
-2. Click **Adjust** on the relevant row
-3. Enter:
-   - **Adjustment Type** — Positive (+) or Negative (-)
-   - **Adjustment Quantity** — How many units to adjust
-   - **Reason** — e.g., "Cycle count", "Damage found", "Theft"
-   - **Notes** — Additional details
-4. Click **Submit**
-
-> ⚠️ All adjustments are logged in the audit trail with the user's name and timestamp.
-
-### 5.3 Internal Transfer
-
-Moving stock from one location to another:
-
-1. Navigate to **Transfers** (coming in Phase 2)
-2. Select product, source location, and destination location
-3. Enter quantity to transfer
-4. Submit transfer
-
----
-
-## 6. Outbound / Orders
-
-### 6.1 Process Flow
-
-```
-Sales Order Created → Wave Planning → Pick Task Assignment → Picking → Packing → Shipping → Invoice
-```
-
-### 6.2 Creating an Order
-
-1. Navigate to **Outbound → Orders**
-2. Click **+ New Order**
-3. Fill in:
-   - **Order Type** — Sales / Transfer / Internal / Sample
-   - **Destination** — Store name and address
-   - **Priority** — Normal / Urgent / Rush
-   - **Due Date** — Required delivery date
-4. Add line items (select product, enter quantity)
-5. Click **Create**
-
-### 6.3 Picking Process
-
-1. **Supervisor** generates pick tasks (Start Picking)
-2. **Picker** is assigned to pick tasks
-3. **Picker** goes to each location, scans barcode, confirms quantity
-4. System marks pick task as **Picked**
-
-### 6.4 Packing & Shipping
-
-1. **Packer** packs items into cartons
-2. **Carton weight** is recorded
-3. **Carrier** is assigned
-4. **BOL (Bill of Lading)** is generated
-5. **Ship** confirms dispatch and deducts inventory
-
-### 6.5 Order Status Definitions
-
-| Status | Meaning |
-|--------|---------|
-| **Draft** | Order created, not yet released |
-| **Picked** | All items picked from locations |
-| **Packed** | All items packed into cartons |
-| **Shipped** | Dispatched to carrier |
-| **Completed** | Delivery confirmed |
-| **Cancelled** | Order cancelled |
-
----
-
-## 7. User & Role Administration
-
-### 7.1 User Management (Admin Only)
-
-**To create a new user:**
-1. Navigate to **Admin → Users**
-2. Click **+ Add New**
-3. Fill in:
-   - **Username** — Login name
-   - **Full Name** — Display name
-   - **Email** — Work email
-   - **Phone** — Contact number
-   - **Password** — Initial password
-   - **Role** — Select role (Admin/Supervisor/Operator/Viewer)
-4. Click **Create**
-
-### 7.2 Role Management (Admin Only)
-
-Roles define what users can see and do.
-
-| Role | Can Do |
-|------|--------|
-| **Admin** | Full access — system config, users, all operations |
-| **Supervisor** | Manage operations in assigned zones, approve adjustments |
-| **Operator** | Execute assigned tasks (receive, pick, pack) |
-| **Viewer** | Read-only access to all modules |
-
-### 7.3 Password Policy
-
-- Minimum 8 characters
-- Recommend: mix of letters, numbers, and symbols
-- Change passwords every 90 days
-
----
-
-## 8. Reports & KPIs
-
-### 8.1 Dashboard KPIs
-
-| KPI | Formula | Target |
-|-----|---------|--------|
-| **Inventory Accuracy** | (System qty = Physical qty) / Total locations × 100% | ≥ 99% |
-| **Receiving Accuracy** | Receipts with no discrepancies / Total receipts × 100% | ≥ 98% |
-| **On-Time Shipment** | Orders shipped on or before due date / Total orders × 100% | ≥ 95% |
-| **Pick Productivity** | Lines picked per hour per picker | ≥ 100 lines/hr |
-| **Dock-to-Stock Time** | Time from receipt to items available for picking | ≤ 4 hours |
-
-### 8.2 Generating Reports
-
-Reports are accessed via the **Reports** module (Admin/Supervisor only). Available reports include:
-- Inbound summary by date range
-- Outbound summary by date range
-- Inventory valuation report
-- Pick task productivity report
-- Stock movement history
-
----
-
-## 9. Troubleshooting
-
-### 9.1 Login Issues
-
-| Problem | Solution |
-|---------|----------|
-| "Invalid credentials" | Check username/password. Passwords are case-sensitive |
-| "Session expired" | Reload the page and log in again |
-| Can't log in | Contact Admin to reset password |
-
-### 9.2 API Errors
-
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| `401 Unauthorized` | JWT token expired | Log out and log back in |
-| `403 Forbidden` | No permission for this action | Contact Admin to update your role |
-| `404 Not Found` | Record doesn't exist | Check if the item was deleted |
-| `409 Conflict` | Duplicate record | SKU/Code already exists — use a different value |
-
-### 9.3 System Errors
-
-| Problem | Solution |
-|---------|----------|
-| Page won't load | Clear browser cache, reload page |
-| Data not saving | Check your internet connection, try again |
-| Dashboard shows no data | Backend may not be running — restart with `dotnet run` |
-
-### 9.4 Contact
-
-| Issue | Contact |
-|-------|---------|
-| Login / Access | IT Admin |
-| Operational questions | DC Supervisor |
-| System bugs / suggestions | WMS Specialist |
-
----
-
-## Appendix: Keyboard Shortcuts
-
-| Action | Shortcut |
-|--------|----------|
-| Logout | Click user dropdown → Logout |
-| Search | Click the search bar or press `/` |
-| Go to Dashboard | Press `G` then `D` |
-| New Record | Click `+ Add New` button |
-
----
-
-*Document Version: 1.0 — June 2026*
+| Symptom | Cause |
+|---|---|
+| "You do not have permission to do that." | Your role does not allow the action (see section 2) |
+| "Insufficient available stock for SKU-..." | Other orders have reserved the stock, or it was never received |
+| "Stock was allocated by another order at the same time" | Two people allocated the same stock simultaneously; retry |
+| "Cannot reach the server" | The API is not running or the proxy target is wrong |
+| Receipt line cannot be received | The receipt is already Received/Partial, or the location belongs to another warehouse or holds another lot |

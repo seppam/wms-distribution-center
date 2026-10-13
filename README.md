@@ -1,101 +1,170 @@
 # WMS Distribution Center
 
-A full-stack **Warehouse Management System** for a distribution center: receiving, put-away, inventory control, picking, packing and shipping, with role-based access and a REST API documented in Swagger.
+A full-stack **Warehouse Management System** for a distribution center. It covers the whole physical cycle: receiving and put-away, stock control, order allocation, picking, packing, shipping, adjustments, transfers and returns, with role-based access and a REST API documented in Swagger.
 
-> **Portfolio case study.** This is a personal project built to practise designing a realistic WMS domain model and API. It is not affiliated with any company and ships with fictional demo data only.
+> **Portfolio case study.** A personal project built to practise designing a realistic WMS domain model, API and UI. It is not affiliated with any company and ships with fictional demo data only.
 
-![Dashboard](docs/screenshots/02-dashboard.png)
+![Dashboard](docs/screenshots/02-dashboard.webp)
 
 ## Why
 
-Distribution centers live and die by inventory accuracy. This project models the core inbound-to-outbound flow end to end so the business rules (stock only changes through traceable transactions, shipping requires packing, adjustments need approval) are explicit and tested.
+Distribution centers live and die by inventory accuracy. This project models the inbound-to-outbound flow end to end so the business rules are explicit and tested: stock only changes through traceable ledger transactions, allocation cannot over-reserve, picking cannot exceed what was requested, shipping requires packing, and corrections need a second person's approval.
 
 ## Features
 
-- **Inbound**: purchase-order receipts, line-level receiving with shortage/damage status, put-away to a location, receipt completion. Re-receiving a line only posts the quantity delta.
-- **Inventory**: stock per product and location with on-hand/reserved quantities, an immutable inventory transaction log, and stock adjustments that only apply after approval.
-- **Outbound**: sales orders, pick-task generation that reserves stock, packing (cartons), shipping with carrier details. Shipping deducts stock and writes `Out` transactions, and is only allowed for packed orders.
+- **Inbound**: planned receipts with lines, receiving with put-away to a location in one step (repeatable, only the delta posts), damaged goods recorded but not stocked, lot-mixing protection, receipt completion as Received or Partial.
+- **Outbound**: orders with lines, all-or-nothing stock allocation (first-expiry-first-out, fullest bin first), pick tasks per bin, pick confirmation with over-pick rejection and short picks, packing into cartons, shipping with carrier details, delivery, cancellation that releases reservations.
+- **Inventory**: per-bin on-hand/reserved/available, an immutable movement ledger (inbound, outbound, adjustment, transfer, return), adjustments (increase, decrease, recount) that apply only after approval and are recalculated against current stock, transfers of unreserved stock, returns with restock/refurbish/dispose/write-off dispositions.
+- **Safety**: optimistic concurrency token on every stock row so two simultaneous allocations cannot both win, and consistent 400/403/404/409 error messages the UI shows verbatim.
 - **Master data**: warehouses, zones, locations, products, categories, units of measure, suppliers, carriers.
-- **Security**: JWT authentication, BCrypt password hashing, users and roles; public self-registration always gets the least-privileged `Viewer` role.
-- **Reporting**: dashboard KPIs (SKUs, locations, today's inbound/outbound, low stock, expiring soon, inventory value).
+- **Security**: JWT, BCrypt, four roles with a per-endpoint permission matrix, CORS allow-list, startup validation of the JWT configuration, login rate limiting, no credentials in the repository (see [Security](#security)).
+- **Web UI**: every step above is available in the browser with loading, empty and error states and role-aware actions. There are no mock-data fallbacks: if the API is down the page says so.
 
-### Current scope
+## Roles and permission matrix
 
-The REST API covers all flows above. In the web UI, master data, users and roles have full CRUD; inventory, inbound, outbound and the dashboard are live read views over the API. Creating receipts/orders and the pick/pack/ship steps are done through Swagger for now. Pages for adjustments, picks, shipments, transfers, returns and UOMs are placeholders. Authorization is authentication-only (roles are stored but endpoint-level role checks are not enforced yet).
+Four built-in roles. The table below is enforced by the API and verified for **every endpoint and every role** by `AuthorizationMatrixTests` (a new endpoint without an entry fails the build). The UI hides actions the server would reject. Per-route detail: [`docs/API-REFERENCE.md`](docs/API-REFERENCE.md).
+
+| Capability | Admin | Supervisor | Operator | Viewer |
+|---|:-:|:-:|:-:|:-:|
+| View inventory, receipts, orders, pick tasks, shipments, transfers, returns, adjustments, reports, master data | yes | yes | yes | yes |
+| Receive and put away goods, complete receipts | yes | yes | yes | |
+| Confirm picks, pack, ship, mark delivered | yes | yes | yes | |
+| Propose adjustments, create/complete transfers, receive returns | yes | yes | yes | |
+| Plan receipts and orders (create, edit, delete drafts), allocate stock, assign pickers, cancel orders | yes | yes | | |
+| Approve or reject adjustments, process returns | yes | yes | | |
+| Create and edit master data | yes | yes | | |
+| List users | yes | yes | | |
+| Delete master data, create/edit/delete users, manage roles | yes | | | |
+
+Rules on top of the matrix: a non-admin cannot approve an adjustment they created; an admin cannot delete their own account; the four built-in roles cannot be renamed or deleted and custom roles only get read access; a token is rejected as soon as its user is deactivated or changes role. Anonymous routes: `POST /api/auth/login` and `/register` (rate limited; registration is off unless `Auth__AllowSelfRegistration=true` and always yields a Viewer), `GET /healthz`, `/readyz`.
+
+## Screenshots
+
+All data below is fictional (seeded through the API by `frontend/e2e/screenshots.mjs`).
+
+| | |
+|---|---|
+| ![Login](docs/screenshots/01-login.webp) **Login** | ![Inventory](docs/screenshots/03-inventory.webp) **Inventory** with reserved vs available |
+| ![Receipt](docs/screenshots/04-receipt-detail.webp) **Receipt**: partial delivery with a shortage and damaged goods | ![Orders](docs/screenshots/05-outbound.webp) **Outbound orders** in every state |
+| ![Order](docs/screenshots/06-order-picking.webp) **Order in Picking**: lines, pick tasks, picker assignment | ![Picks](docs/screenshots/07-pick-tasks.webp) **Pick tasks**: confirm or short-pick |
+| ![Adjustments](docs/screenshots/08-adjustments.webp) **Adjustments** awaiting approval | ![Transfers](docs/screenshots/09-transfers.webp) **Transfers** |
+| ![Returns](docs/screenshots/10-returns.webp) **Returns** | ![Dashboard](docs/screenshots/02-dashboard.webp) **Dashboard** |
 
 ## Architecture
 
 ```
-React 19 + Vite  --/api-->  ASP.NET Core 9 Web API  --EF Core-->  PostgreSQL 16
+React 19 + Vite  --/api-->  ASP.NET Core 9 Web API  --EF Core 8-->  PostgreSQL 16
  (axios, router)            Controllers -> Services -> DbContext
-                            JWT bearer auth, AutoMapper DTOs, Swagger
+                            JWT + role policies, rate limiting, Swagger (Development)
 ```
 
 ```
-backend/    ASP.NET Core API (Controllers, Services, DTOs, Models, Data/seeder)
-frontend/   React SPA (pages, layout, auth context, API client)
-tests/      xUnit tests for the core flows
-docs/       Specification documents, ERD, Postman collection, screenshots
+backend/    ASP.NET Core API: Controllers, Services (business rules), Mapping (explicit DTO mappers),
+            Security (roles, policies, JWT settings), Data (DbContext, migrations, seeder)
+frontend/   React SPA: pages, shared UI (modal, toasts, data states), auth context, API client,
+            Vitest tests next to the code, Playwright end-to-end test in e2e/
+tests/      xUnit: unit, workflow, concurrency, authorization matrix, security and migration tests
+docs/       API reference, user manual, original specification, ERD, screenshots
+scripts/    secret-scan.sh
 ```
 
-Business logic lives in the services (`InboundService`, `OutboundService`, `InventoryService`, ...) behind interfaces, which is what the tests exercise.
+Business rules live in the services behind interfaces (`InboundService`, `OutboundService`, `InventoryService`, `TransferService`, `ReturnService`); controllers only translate HTTP and apply the authorization policy.
 
 ## Tech stack
 
-ASP.NET Core 9, Entity Framework Core 8 (Npgsql), PostgreSQL 16, AutoMapper, JWT bearer auth, BCrypt, Swagger/OpenAPI, React 19, Vite, React Router, Axios, Recharts, xUnit.
+ASP.NET Core 9, Entity Framework Core 8 (Npgsql) with migrations, PostgreSQL 16, JWT bearer auth, BCrypt, Swagger/OpenAPI, React 19, Vite, React Router, Axios, Vitest + Testing Library, Playwright, xUnit, Docker, GitHub Actions. AutoMapper was removed in favour of explicit mapping (its 12.x release carries a high-severity advisory); `dotnet list package --vulnerable --include-transitive` is clean and CI fails if that changes.
 
 ## Run it locally
 
-Prerequisites: .NET SDK 9, Node.js 20+, and PostgreSQL 16 (Docker Compose file included).
+Prerequisites: .NET SDK 9, Node.js 22+, Docker (for the database; any PostgreSQL 16 works too).
 
 ```bash
-# 1. Database
-docker compose up -d db            # PostgreSQL on localhost:5432 (db wms_dc, user wms_admin)
+# 1. Database: PostgreSQL 16 on localhost:5333 (throwaway local credentials)
+docker compose -f docker-compose.dev.yml up -d
 
-# 2. API  -> http://localhost:5243  (Swagger UI at /swagger)
-cd backend
-dotnet run                         # Development profile: schema is created and demo data seeded
+# 2. API -> http://localhost:5300  (Swagger UI at /swagger)
+#    Development applies the EF Core migrations and seeds a fictional warehouse and the demo accounts
+dotnet run --project backend
 
-# 3. Frontend -> http://localhost:3000
-cd ../frontend
+# 3. Web app -> http://localhost:5173  (proxies /api to the API)
+cd frontend
 npm ci
 npm run dev
 ```
 
-Sign in with the demo user `admin` / `admin123` (seeded only for local use; change it for anything else).
+Demo accounts exist **only in the Development environment with `Seed__DemoData=true`** (the default in `appsettings.Development.json`): `admin`, `supervisor`, `operator`, `viewer`, all with the documented throwaway password `Demo!Pass123`. In Development without `Jwt__Key` the API generates a random signing key on every start (sessions end when it restarts), so no key lives in the repository.
 
-Configuration is read from `appsettings.json`, `appsettings.Development.json` and environment variables. The committed files contain **no secrets**: outside Development you must provide them yourself.
+## Run the full stack with Docker
 
-| Setting | Environment variable | Notes |
-|---------|----------------------|-------|
-| Database | `ConnectionStrings__DefaultConnection` | Npgsql connection string |
-| JWT signing key | `Jwt__Key` | at least 32 characters, app refuses to start otherwise |
-| Demo data | `Seed__DemoData` | `true` seeds a fictional warehouse, products and stock |
+```bash
+cp .env.example .env     # then set POSTGRES_PASSWORD, JWT_KEY (openssl rand -base64 48) and ADMIN_PASSWORD
+docker compose up --build
+```
 
-`appsettings.Development.json` holds clearly marked local-only defaults that match `docker-compose.yml`. Copy `.env.example` to `.env` to change the database credentials used by Compose (then update the connection string to match). If you use a different Postgres, set `ConnectionStrings__DefaultConnection`. The frontend talks to `/api` through the Vite proxy; set `VITE_API_URL` (see `frontend/.env.example`) to point elsewhere.
+Web app: <http://localhost:5174>, API health: <http://localhost:5301/healthz>. Sign in as `admin` with the `ADMIN_PASSWORD` from `.env`. The stack runs in **Production mode**: Swagger is off, there are no demo accounts, migrations run on startup (`Database__MigrateOnStartup=true`), the API refuses to start with a placeholder or missing signing key, and nginx serves the SPA and proxies `/api` so no CORS is needed. Set `SEED_DEMO_DATA=true` in `.env` to also load the fictional warehouse and products (still no demo accounts). TLS is not terminated here; put a reverse proxy in front for anything public. `docker compose down` stops it (add `--volumes` to drop the database).
+
+## Configuration
+
+Configuration comes from `appsettings*.json` and environment variables (`__` replaces `:`). Committed files contain no secrets.
+
+| Setting | Notes |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | Npgsql connection string (required outside Development) |
+| `Jwt__Key` | Required outside Development: 32+ characters, rejected when it looks like a placeholder or has too little entropy. `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpiryMinutes` (1-1440) are validated at startup |
+| `AllowedOrigins__0`, `__1`, ... | Explicit CORS origins. Empty means same-origin only; `*` is rejected at startup |
+| `Auth__AllowSelfRegistration` | Default `false` (`true` in Development) |
+| `RateLimiting__AuthPermitLimit` / `__AuthWindowSeconds` | Login/registration limit per client address, default 10 per 60 s |
+| `ForwardedHeaders__Enabled` | Set behind a reverse proxy so the limiter sees the real client address (only expose the API to the proxy) |
+| `Database__MigrateOnStartup` | Apply migrations on start outside Development (Development always does) |
+| `Seed__AdminUsername`, `Seed__AdminEmail`, `Seed__AdminPassword` | Creates the first administrator when no user exists (password 12+ characters) |
+| `Seed__DemoData` | Fictional warehouse, products and stock. Demo **accounts** are additionally gated on `ASPNETCORE_ENVIRONMENT=Development` |
+
+## Database migrations
+
+The schema is owned by EF Core migrations in `backend/Data/Migrations`. A test fails when the model drifts from the latest migration.
+
+```bash
+dotnet tool restore                                              # installs the pinned dotnet-ef
+dotnet ef migrations add <Name> --project backend --output-dir Data/Migrations
+dotnet ef database update --project backend                      # uses ConnectionStrings__DefaultConnection
+dotnet ef migrations script --idempotent --project backend -o schema.sql   # SQL for a DBA
+```
+
+Development applies pending migrations on startup. Elsewhere the API fails fast with the command above when the schema is behind, unless `Database__MigrateOnStartup=true`.
 
 ## Tests
 
 ```bash
-dotnet test WmsDistributionCenter.sln                # backend: 14 xUnit tests
-cd frontend && npm run lint && npm run build        # frontend checks
+dotnet test WmsDistributionCenter.sln        # backend: 95 xUnit tests
+cd frontend
+npm run lint && npm test && npm run build    # 94 Vitest + Testing Library tests
+npm run test:e2e                             # 2 Playwright tests, needs the API and web app running (see below)
+./scripts/secret-scan.sh                     # run before every push
 ```
 
-The backend tests use an in-memory database and cover receiving and put-away (including no double counting), receipt completion, pick reservation, pack-and-ship stock deduction, rejecting shipment of unpacked orders, adjustment approval, authentication, the registration role rule, and validity of the whole AutoMapper configuration. CI runs the same commands (`.github/workflows/ci.yml`).
+- **Backend (95)**: every workflow (receive, allocate, pick, pack, ship, deliver, cancel, adjust, transfer, return), over-pick and over-allocation protection, an optimistic-concurrency test and a 6-way parallel-allocation test, the authorization matrix (every endpoint x every role), JWT validation, seeding rules, CORS, rate limiting, revoked tokens, health endpoints, migration drift, and a full warehouse cycle across roles through HTTP. They use the in-memory EF provider plus the real ASP.NET pipeline.
+- **Frontend (94)**: each page with loading, empty, error and permission states and its create/confirm flows, the generic CRUD page, login, sidebar visibility, and the permission helpers.
+- **End to end (2)**: one Playwright run through the browser: receive, put away, create order, allocate, pick, pack, ship, deliver, adjust, transfer, return, then check the ledger; plus a viewer who sees no actions. Locally: start the API and `npm run dev`, then `npx playwright install chromium` (or `PW_CHANNEL=chrome` to use an installed Chrome) and `npm run test:e2e`. The same test passes against the Docker stack with `E2E_BASE_URL=http://localhost:5174 E2E_DEMO_PASSWORD=<ADMIN_PASSWORD>`.
+- **CI** (`.github/workflows/ci.yml`): backend tests and a vulnerability audit, frontend lint/test/build, the Playwright test against a real PostgreSQL service, and the secret scan.
 
-## Screenshots
+## Security
 
-| Login | Inventory |
-|---|---|
-| ![Login](docs/screenshots/01-login.png) | ![Inventory](docs/screenshots/03-inventory.png) |
-| **Inbound** | **Outbound** |
-| ![Inbound](docs/screenshots/04-inbound.png) | ![Outbound](docs/screenshots/05-outbound.png) |
+- Per-endpoint role policies (above), tokens revalidated against the user record, BCrypt hashes, a dummy hash comparison so unknown users cost the same as wrong passwords.
+- Configuration validated at startup (JWT key strength, issuer/audience, expiry, CORS origins), fail fast with a clear message.
+- Rate limiting on login and registration; security headers (`nosniff`, frame deny, no referrer); request validation with minimum password length 10.
+- No secrets in the repository: signing keys come from the environment (or are generated in Development), demo accounts are Development-only, the Docker stack requires `.env` secrets. `scripts/secret-scan.sh` runs in CI and should be run before pushing.
+- Reporting issues: open a GitHub issue; this is a portfolio project, not a supported product.
 
 ## Known limitations
 
-- AutoMapper 12 has a published advisory; the fixed releases use a commercial license. Fine for a demo, replace it (or map manually) before production.
-- CORS is open (`AllowAnyOrigin`) and the schema is created with `EnsureCreated` rather than migrations: both are demo conveniences.
-- Role-based endpoint authorization and the remaining UI pages (see Current scope) are not implemented yet.
+- **Not production hardened.** No audit trail beyond the stock ledger, no refresh tokens or password reset, the JWT lives in `localStorage` (exposed to XSS), TLS is not terminated by the compose stack, and there is no account lockout beyond the per-address rate limit.
+- **Roles are fixed.** The four built-in roles carry the permissions; custom roles can only read. A user's warehouse is stored but does not restrict access. The role `Permissions` JSON column is unused.
+- **Simplified warehouse model.** Allocation is all-or-nothing per order (no back-orders or partial shipments), one carton per order, one stock row per product and bin (so one lot per bin), no wave/batch picking, no multi-UOM conversion at transaction time, put-away is chosen by the user and not suggested.
+- **Document numbers** (`RCV-`, `ORD-`, ...) are daily counters; two simultaneous creations can collide and one gets a 409 to retry.
+- **Concurrency** is verified with the in-memory provider and an interleaved-parallel test; it has not been load-tested against PostgreSQL under real parallel traffic.
+- **Receipts** cannot be cancelled through the API (draft receipts can be deleted), and lines can be added through the API but not edited or removed.
+- **UI** is desktop-first: below 768 px the sidebar is hidden without a menu button. Lists are not paginated in the UI (inventory loads up to 500 rows).
+- **Docs**: `docs/SRS.md` and `docs/TECHNICAL.md` are the original design documents with a status banner; the Postman collection only covers the first endpoints.
 
 ## Author
 

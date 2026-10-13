@@ -41,3 +41,5 @@
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .line-row, .line-row.simple { grid-template-columns: 1fr 1fr; }
 }
+.code-chip { white-space: nowrap; }
+.data-table td strong { white-space: nowrap; }

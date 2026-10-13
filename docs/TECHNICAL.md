@@ -2,6 +2,13 @@
 ## WMS Distribution Center — Warehouse Management System
 **Portfolio case study | Distribution Center**
 
+> **Status.** This is the original design document. The implementation differs in these ways:
+> explicit entity-to-DTO mapping replaced AutoMapper; the schema is managed by EF Core migrations (`backend/Data/Migrations`);
+> authorization is role based per endpoint (see the permission matrix in the README and `API-REFERENCE.md`);
+> routes are `/api/inboundreceipts`, `/api/outboundorders`, `/api/pick-tasks`, `/api/transfers`, `/api/returns`;
+> the API listens on port 5300 and the web app on 5173 in development. Treat the README and `API-REFERENCE.md` as authoritative.
+
+
 | Field | Value |
 |-------|-------|
 | Document ID | TECH-WMS-Distribution Center-001 |
