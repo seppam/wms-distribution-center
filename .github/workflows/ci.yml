@@ -12,7 +12,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - run: dotnet test WmsDistributionCenter.sln --configuration Release
+      - name: Test (xUnit: workflows, authorization matrix, security, migrations)
+        run: dotnet test WmsDistributionCenter.sln --configuration Release
+      - name: Dependency audit (fails on any known vulnerability, including transitive)
+        run: |
+          dotnet list WmsDistributionCenter.sln package --vulnerable --include-transitive | tee audit.txt
+          ! grep -q "has the following vulnerable packages" audit.txt
 
   frontend:
     runs-on: ubuntu-latest
@@ -28,4 +33,73 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - name: Unit and component tests (Vitest)
+        run: npm test
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wms_e2e
+          POSTGRES_USER: wms_ci
+          POSTGRES_PASSWORD: ci-only-throwaway
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U wms_ci -d wms_e2e"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://localhost:5300
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5433;Database=wms_e2e;Username=wms_ci;Password=ci-only-throwaway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start the API (applies migrations and seeds the Development demo data)
+        run: |
+          dotnet run --project backend --configuration Release --no-launch-profile > api.log 2>&1 &
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:5300/api/auth/login -H 'content-type: application/json' -d '{"username":"admin","password":"Demo!Pass123"}')
+            [ "$code" = "200" ] && break; sleep 2
+          done
+          [ "$code" = "200" ] || { cat api.log; exit 1; }
+      - name: Install frontend dependencies and the Playwright browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start the web app
+        working-directory: frontend
+        run: |
+          npm run dev > ../web.log 2>&1 &
+          curl --retry 30 --retry-delay 1 --retry-connrefused -sf -o /dev/null http://localhost:5173/
+      - name: End-to-end happy path (Playwright)
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            api.log
+            web.log
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/secret-scan.sh

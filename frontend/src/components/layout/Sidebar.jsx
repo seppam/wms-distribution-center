@@ -4,16 +4,16 @@ import {
   Settings, LogOut, Menu, X, ChevronDown
 } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './Sidebar.css';
 
 const menuItems = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard, permission: null },
+  { label: 'Dashboard', path: '/', icon: LayoutDashboard, permission: 'read' },
   { 
     label: 'Master Data', 
     icon: Package, 
-    permission: null,
+    permission: 'read',
     children: [
       { label: 'Products', path: '/products', icon: Package },
       { label: 'Categories', path: '/categories', icon: FileText },
@@ -25,18 +25,18 @@ const menuItems = [
   { 
     label: 'Warehouse', 
     icon: Warehouse, 
-    permission: null,
+    permission: 'read',
     children: [
       { label: 'Warehouses', path: '/warehouses', icon: Warehouse },
       { label: 'Zones', path: '/zones', icon: Package },
       { label: 'Locations (Bins)', path: '/locations', icon: Package },
     ]
   },
-  { label: 'Inventory', path: '/inventory', icon: Package, permission: 'inventory' },
+  { label: 'Inventory', path: '/inventory', icon: Package, permission: 'read' },
   { 
     label: 'Inbound', 
     icon: ArrowRightLeft, 
-    permission: 'inbound',
+    permission: 'read',
     children: [
       { label: 'Receipts', path: '/inbound', icon: ArrowRightLeft },
     ]
@@ -44,25 +44,27 @@ const menuItems = [
   { 
     label: 'Outbound', 
     icon: ArrowRightLeft, 
-    permission: 'outbound',
+    permission: 'read',
     children: [
       { label: 'Orders', path: '/outbound', icon: ArrowRightLeft },
       { label: 'Pick Tasks', path: '/picks', icon: Package },
       { label: 'Shipments', path: '/shipments', icon: Truck },
     ]
   },
-  { label: 'Transfers', path: '/transfers', icon: ArrowRightLeft, permission: 'transfers' },
-  { label: 'Returns', path: '/returns', icon: ArrowRightLeft, permission: 'returns' },
-  { label: 'Adjustments', path: '/adjustments', icon: Settings, permission: 'inventory' },
+  { label: 'Transfers', path: '/transfers', icon: ArrowRightLeft, permission: 'read' },
+  { label: 'Returns', path: '/returns', icon: ArrowRightLeft, permission: 'read' },
+  { label: 'Adjustments', path: '/adjustments', icon: Settings, permission: 'read' },
   { divider: true },
-  { label: 'Users', path: '/users', icon: Users, permission: 'users' },
-  { label: 'Roles', path: '/roles', icon: Shield, permission: 'roles' },
+  { label: 'Users', path: '/users', icon: Users, permission: 'manage' },
+  { label: 'Roles', path: '/roles', icon: Shield, permission: 'admin' },
 ];
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
-  const [expandedMenus, setExpandedMenus] = useState({});
-  const { user, logout, isAdmin } = useAuth();
+  const location = useLocation();
+  // Workflow groups start open; a group also opens when the current page lives inside it
+  const [expandedMenus, setExpandedMenus] = useState({ Inbound: true, Outbound: true });
+  const { user, logout, can } = useAuth();
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -75,15 +77,12 @@ export default function Sidebar() {
   }
 
   function renderMenuItem(item) {
-    // Permission check
-    if (item.permission && !isAdmin) {
-      // In real app, check hasPermission here
-    }
+    if (item.permission && !can(item.permission)) return null;
 
     if (item.divider) return <hr key="div" className="sidebar-divider" />;
 
     if (item.children) {
-      const isExpanded = expandedMenus[item.label];
+      const isExpanded = expandedMenus[item.label] || item.children.some(c => c.path === location.pathname);
       const Icon = item.icon;
       return (
         <div key={item.label} className="menu-group">
@@ -146,7 +145,7 @@ export default function Sidebar() {
             <div className="user-avatar">{user.fullName?.charAt(0) || 'U'}</div>
             <div className="user-details">
               <span className="user-name">{user.fullName || user.username}</span>
-              <span className="user-role">{user.role?.name}</span>
+              <span className="user-role">{user.role}</span>
             </div>
           </div>
           <button className="logout-btn" onClick={handleLogout}>

@@ -1,55 +1,29 @@
 import CrudPage from '../components/ui/CrudPage';
-import { zonesApi, warehousesApi } from '../services';
-import { useState, useEffect } from 'react';
+import { enumOptions, useOptions } from '../hooks/useOptions';
+import { warehousesApi, zonesApi } from '../services';
+
+const ZONE_TYPES = ['Receiving', 'Storage', 'Packing', 'Shipping', 'Returns', 'Staging'];
 
 const columns = [
   { key: 'name', label: 'Zone Name' },
-  { key: 'zoneType', label: 'Type', render: (v) => (
-    <span className="badge badge-info">{v}</span>
+  { key: 'zoneType', label: 'Type', render: (v) => <span className="badge badge-info">{v}</span> },
+  { key: 'warehouseName', label: 'Warehouse' },
+  { key: 'isActive', label: 'Status', render: (v) => (
+    <span className={`badge ${v ? 'badge-success' : 'badge-default'}`}>{v ? 'Active' : 'Inactive'}</span>
   )},
-  { key: 'warehouse', label: 'Warehouse', render: (v) => v?.name || '-' },
-  { key: 'isActive', label: 'Active', render: (v) => v ? '✅' : '❌' },
 ];
 
 export default function Zones() {
-  const [warehouses, setWarehouses] = useState([]);
-
-  useEffect(() => {
-    warehousesApi.getAll().then(res => setWarehouses(res.data || [])).catch(() => {});
-  }, []);
-
+  const warehouses = useOptions(() => warehousesApi.getAll(), (w) => `${w.code} - ${w.name}`);
   const formFields = [
+    { name: 'warehouseId', label: 'Warehouse *', type: 'select', required: true, options: warehouses.options, createOnly: true },
     { name: 'name', label: 'Zone Name *', type: 'text', required: true },
-    {
-      name: 'zoneType', label: 'Zone Type *', type: 'select', required: true,
-      options: [
-        { value: 'Receiving', label: '📥 Receiving' },
-        { value: 'Storage', label: '📦 Storage' },
-        { value: 'Packing', label: '📦 Packing' },
-        { value: 'Shipping', label: '🚚 Shipping' },
-        { value: 'Returns', label: '↩️ Returns' },
-        { value: 'Staging', label: '📋 Staging' },
-      ],
-    },
-    {
-      name: 'warehouseId', label: 'Warehouse *', type: 'select', required: true,
-      options: [], // populated dynamically
-    },
+    { name: 'zoneType', label: 'Zone Type *', type: 'select', required: true, options: enumOptions(ZONE_TYPES) },
     { name: 'description', label: 'Description', type: 'textarea' },
+    { name: 'isActive', label: 'Is Active', type: 'checkbox', editOnly: true },
   ];
-
   return (
-    <CrudPage
-      title="Zones"
-      subtitle="Warehouse zones — Receiving, Storage, Packing, Shipping, Returns"
-      apiService={zonesApi}
-      columns={columns}
-      formFields={formFields.map(f =>
-        f.name === 'warehouseId'
-          ? { ...f, options: warehouses.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` })) }
-          : f
-      )}
-      initialValues={{ isActive: true }}
-    />
+    <CrudPage title="Zones" subtitle="Warehouse zones: receiving, storage, packing, shipping, returns"
+      apiService={zonesApi} columns={columns} formFields={formFields} />
   );
 }

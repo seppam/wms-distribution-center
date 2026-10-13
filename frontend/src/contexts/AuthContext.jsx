@@ -1,71 +1,44 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import api, { TOKEN_KEY } from '../services/api';
+import { roleCan } from '../utils/permissions';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('wms_token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!localStorage.getItem(TOKEN_KEY));
 
-  useEffect(() => {
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
-
-  async function fetchUser() {
-    try {
-      const res = await api.get('/auth/me');
-      setUser(res.data);
-    } catch {
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function login(username, password) {
-    const res = await api.post('/auth/login', { username, password });
-    const { token: newToken, ...userData } = res.data;
-    localStorage.setItem('wms_token', newToken);
-    setToken(newToken);
-    setUser(userData);
-    return userData;
-  }
-
-  function logout() {
-    localStorage.removeItem('wms_token');
-    setToken(null);
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
     setUser(null);
-  }
+  }, []);
 
-  function hasPermission(module, action) {
-    if (!user?.role?.permissions) return false;
-    const perms = user.role.permissions;
-    if (perms === '*') return true;
-    return perms[module]?.includes(action) || perms[module] === '*';
-  }
+  // Restore the session from a stored token
+  useEffect(() => {
+    if (!localStorage.getItem(TOKEN_KEY)) return;
+    api.get('/auth/me')
+      .then((res) => setUser(res.data))
+      .catch(() => logout())
+      .finally(() => setLoading(false));
+  }, [logout]);
 
-  function hasAnyRole(...roles) {
-    return roles.includes(user?.role?.name);
-  }
+  const login = useCallback(async (username, password) => {
+    const res = await api.post('/auth/login', { username, password });
+    localStorage.setItem(TOKEN_KEY, res.data.token);
+    setUser(res.data.user);
+    return res.data.user;
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
-    token,
     loading,
     login,
     logout,
-    hasPermission,
-    hasAnyRole,
-    isAdmin: user?.role?.name === 'Admin',
-    isSupervisor: user?.role?.name === 'Supervisor',
-    isOperator: user?.role?.name === 'Operator',
-    isViewer: user?.role?.name === 'Viewer',
-  };
+    role: user?.role,
+    /** can('read' | 'operate' | 'manage' | 'admin') mirrors the API policies */
+    can: (policy) => roleCan(user?.role, policy),
+    isAdmin: user?.role === 'Admin',
+  }), [user, loading, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

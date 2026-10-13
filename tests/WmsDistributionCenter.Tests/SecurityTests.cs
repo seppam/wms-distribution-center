@@ -218,3 +218,22 @@ public class ApiSecurityTests
         Assert.Equal("nosniff", res.Headers.GetValues("X-Content-Type-Options").Single());
     }
 }
+
+public class RoleProtectionTests
+{
+    [Fact]
+    public async Task BuiltInRoles_CannotBeRenamedOrDeleted_AndNewRolesAreNeverBuiltIn()
+    {
+        using var f = await ApiFactory.CreateSeededAsync();
+        var admin = await f.ClientAsAsync("admin");
+        var roles = await admin.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/roles");
+        var adminRole = roles.EnumerateArray().First(r => r.GetProperty("name").GetString() == "Admin").GetProperty("id").GetGuid();
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/roles/{adminRole}", new { name = "Root" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.DeleteAsync($"/api/roles/{adminRole}")).StatusCode);
+
+        var created = await admin.PostAsJsonAsync("/api/roles", new { name = "Auditor", isSystem = true });
+        created.EnsureSuccessStatusCode();
+        Assert.Contains("\"isSystem\":false", await created.Content.ReadAsStringAsync());
+    }
+}

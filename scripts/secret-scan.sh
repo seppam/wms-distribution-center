@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-ALLOW='wms_dev_password|Demo!Pass123|Test!Pass12345|integration-test-signing-key|unit-test-key|Sup3r-long-pass|a-long-bootstrap-pass|secret-demo|wrong-password|change-me|<your|<set via|<jwt>|\$\{|\$\(|process\.env|placeholder|example'
+ALLOW='wms_dev_password|Demo!Pass123|Test!Pass12345|integration-test-signing-key|unit-test-key|Sup3r-long-pass|ci-only-throwaway|a-long-bootstrap-pass|secret-demo|wrong-password|change-me|<your|<set via|<jwt>|\$\{|\$\(|process\.env|placeholder|example'
 
 PATTERNS=(
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'

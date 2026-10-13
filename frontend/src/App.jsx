@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Spinner, ToastProvider } from './components/ui';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -25,16 +26,21 @@ import './App.css';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><div className="spinner"></div></div>;
+  if (loading) return <div className="center-box" style={{ height: '100vh', alignItems: 'center' }}><Spinner /></div>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><div className="spinner"></div></div>;
+  if (loading) return <div className="center-box" style={{ height: '100vh', alignItems: 'center' }}><Spinner /></div>;
   if (user) return <Navigate to="/" replace />;
   return children;
+}
+
+function RequireRole({ policy, children }) {
+  const { can } = useAuth();
+  return can(policy) ? children : <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
@@ -59,8 +65,8 @@ function AppRoutes() {
         <Route path="transfers" element={<Transfers />} />
         <Route path="returns" element={<Returns />} />
         <Route path="adjustments" element={<Adjustments />} />
-        <Route path="users" element={<Users />} />
-        <Route path="roles" element={<Roles />} />
+        <Route path="users" element={<RequireRole policy="manage"><Users /></RequireRole>} />
+        <Route path="roles" element={<RequireRole policy="admin"><Roles /></RequireRole>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -71,7 +77,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );
