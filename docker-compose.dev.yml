@@ -1,0 +1,21 @@
+# Database only, for local development with `dotnet run` and `npm run dev` (see README).
+# The credentials are throwaway local values that match backend/appsettings.Development.json.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wms_dc
+      POSTGRES_USER: wms_admin
+      POSTGRES_PASSWORD: wms_dev_password
+    ports:
+      - "127.0.0.1:5333:5432"
+    volumes:
+      - wms_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wms_admin -d wms_dc"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  wms_dev_pgdata:

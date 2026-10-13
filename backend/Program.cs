@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -98,6 +99,9 @@ if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
     });
 }
 
+// Tokens are signed JWTs; no cookies or antiforgery are used, so there are no data-protection keys to persist
+builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
+
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -196,6 +200,12 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Liveness (process is up) and readiness (database reachable) for containers and load balancers
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapGet("/readyz", async (WmsDbContext db, CancellationToken ct) =>
+    await db.Database.CanConnectAsync(ct) ? Results.Ok(new { status = "ready" }) : Results.StatusCode(StatusCodes.Status503ServiceUnavailable))
+    .AllowAnonymous();
 
 app.Run();
 

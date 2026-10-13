@@ -69,8 +69,9 @@ jobs:
       - name: Start the API (applies migrations and seeds the Development demo data)
         run: |
           dotnet run --project backend --configuration Release --no-launch-profile > api.log 2>&1 &
+          code=000
           for i in $(seq 1 45); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:5300/api/auth/login -H 'content-type: application/json' -d '{"username":"admin","password":"Demo!Pass123"}')
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:5300/api/auth/login -H 'content-type: application/json' -d '{"username":"admin","password":"Demo!Pass123"}' || true)
             [ "$code" = "200" ] && break; sleep 2
           done
           [ "$code" = "200" ] || { cat api.log; exit 1; }

@@ -237,3 +237,17 @@ public class RoleProtectionTests
         Assert.Contains("\"isSystem\":false", await created.Content.ReadAsStringAsync());
     }
 }
+
+public class HealthEndpointTests
+{
+    [Fact]
+    public async Task HealthEndpoints_AreAnonymous_AndReportReady()
+    {
+        using var f = await ApiFactory.CreateSeededAsync();
+        var client = f.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/healthz")).StatusCode);
+        var ready = await client.GetAsync("/readyz");
+        Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
+        Assert.Contains("ready", await ready.Content.ReadAsStringAsync());
+    }
+}
