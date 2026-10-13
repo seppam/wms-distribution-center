@@ -164,25 +164,12 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Schema migration + seeding run when the host starts (see DatabaseInitializer)
+builder.Services.AddHostedService<DatabaseInitializer>();
+
 var app = builder.Build();
 
-// 7. Create schema (if missing) and seed
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<WmsDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    var cfg = app.Configuration;
-    await DbSeeder.SeedAsync(db, new SeedOptions(
-        DemoData: cfg.GetValue<bool>("Seed:DemoData"),
-        IsDevelopment: app.Environment.IsDevelopment(),
-        DemoPassword: cfg["Seed:DemoPassword"],
-        AdminUsername: cfg["Seed:AdminUsername"],
-        AdminEmail: cfg["Seed:AdminEmail"],
-        AdminPassword: cfg["Seed:AdminPassword"]),
-        scope.ServiceProvider.GetRequiredService<ILogger<Program>>());
-}
-
-// 8. Configure pipeline
+// 7. Configure pipeline
 app.UseExceptionHandler();
 if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
     app.UseForwardedHeaders();
