@@ -5,9 +5,10 @@ import useDemoInfo from '../../hooks/useDemoInfo';
 import { errorMessage } from '../../services/api';
 import { reloadPage, resetDemoData } from '../../services/demo';
 import { Confirm, useToast } from '../ui';
+import { BROWSER_DEMO, BrowserDemoNotice } from '#browser-demo';
 
 /** Shown only when the API reports demo mode. Admins can restore the seeded dataset. */
-export default function DemoBanner() {
+function ApiDemoBanner() {
   const { enabled } = useDemoInfo();
   const { isAdmin } = useAuth();
   const toast = useToast();
@@ -52,3 +53,6 @@ export default function DemoBanner() {
     </div>
   );
 }
+
+/** The browser-only build shows its own banner; every other build shows the API-driven one. */
+export default BROWSER_DEMO ? BrowserDemoNotice : ApiDemoBanner;

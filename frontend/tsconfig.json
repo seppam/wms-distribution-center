@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "strict": true, "noEmit": true, "resolveJsonModule": true, "esModuleInterop": true, "skipLibCheck": true,
+    "types": ["vite/client"], "isolatedModules": true
+  },
+  "include": ["src/browser-demo/**/*.ts", "src/vite-env.d.ts"],
+  "exclude": ["src/browser-demo/index.ts", "src/browser-demo/**/*.test.ts"]
+}

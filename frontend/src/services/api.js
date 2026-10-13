@@ -1,8 +1,11 @@
 import axios from 'axios';
+import { browserDemoAdapter } from '#browser-demo';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
+  // Browser-only demo build: answer requests in the page instead of over the network (undefined = normal axios adapter).
+  adapter: browserDemoAdapter,
 });
 
 export const TOKEN_KEY = 'wms_token';
@@ -22,7 +25,8 @@ api.interceptors.response.use(
     const isLogin = err.config?.url?.includes('/auth/login');
     if (err.response?.status === 401 && !isLogin) {
       localStorage.removeItem(TOKEN_KEY);
-      if (window.location.pathname !== '/login') window.location.assign('/login');
+      const login = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/login`;
+      if (window.location.pathname !== login) window.location.assign(login);
     }
     return Promise.reject(err);
   }

@@ -33,6 +33,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - name: Type-check the browser-demo engine (TypeScript)
+        run: npm run typecheck
       - name: Unit and component tests (Vitest)
         run: npm test
       - run: npm run build
@@ -98,6 +100,48 @@ jobs:
             frontend/test-results
             api.log
             web.log
+
+  browser-demo:
+    # Browser-only demo (no API, no database): unit + contract tests, static build, bundle check, Playwright against the
+    # static files, and the static dist uploaded as a workflow artifact. Nothing is deployed.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Adapter unit tests and shared-contract tests (Vitest)
+        run: npx vitest run src/browser-demo
+      - name: Build the normal app and the browser demo
+        run: |
+          npm run build
+          npm run build:browser-demo
+      - name: Bundle check (the normal build must not contain the in-browser adapter)
+        run: npm run check:bundle
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end tests against the static build (Playwright)
+        run: npm run test:e2e:browser-demo
+      - name: Upload the static site (not deployed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-demo-dist
+          path: frontend/dist-browser-demo
+          if-no-files-found: error
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-browser-demo-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
 
   e2e-demo:
     # The documented one-command path: docker compose demo stack, then the demo Playwright tests against it

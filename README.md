@@ -10,8 +10,34 @@ A full-stack **Warehouse Management System** for a distribution center. It cover
 
 Everything below runs a **demo**: fictional data, one shared public account per role, and one-click sign-in buttons on the login page. Nothing to sign up for, no secrets to create.
 
+### Browser demo: no Docker, no database, no host
+
+The whole app runs **inside your browser**: the business rules are reimplemented in TypeScript and the data lives in `localStorage`. No API, no PostgreSQL, no Docker, no network calls. You only need Node.js 20.19+ or 22+.
+
+```bash
+git clone https://github.com/seppam/wms-distribution-center
+cd wms-distribution-center/frontend
+npm ci
+npm run dev:browser-demo          # http://localhost:5173
+```
+
+Or build the static site and serve it with any static file server (the folder needs a single-page-app fallback to `index.html`, which `vite preview` provides):
+
+```bash
+npm run build:browser-demo        # static files in frontend/dist-browser-demo
+npm run preview:browser-demo      # http://localhost:5176
+```
+
+Click *Sign in as Admin / Supervisor / Operator / Viewer*. A banner says *Browser demo: data is stored only in this browser (localStorage); nothing is sent to a server*, with **Reset demo data** and **About this demo** buttons. A hosted copy can be added: see [Hosting](#hosting-the-real-thing). Differences from the full stack: [The situation and your options](#the-situation-and-your-options).
+
+![Browser demo login](docs/screenshots/11-browser-demo-login.webp)
+![Browser demo dashboard](docs/screenshots/12-browser-demo-dashboard.webp)
+
+### Full-stack demos (real API and database)
+
 | Option | You need | Command / link | Opens at |
 |---|---|---|---|
+| **Browser demo** (no Docker, no database) | Node 22 | `cd frontend && npm ci && npm run dev:browser-demo` | <http://localhost:5173> |
 | **Docker, one command** (recommended) | Docker with Compose v2 | `git clone https://github.com/seppam/wms-distribution-center && cd wms-distribution-center && docker compose -f docker-compose.demo.yml up --build` | <http://localhost:5174> |
 | **GitHub Codespaces**, nothing installed | a GitHub account | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/seppam/wms-distribution-center) | the forwarded port **5174** opens automatically |
 | **Without the full Docker stack** | .NET SDK 9, Node 22 (20.19+), Docker only for the database | `./scripts/demo.sh` | <http://localhost:5173> |
@@ -36,6 +62,72 @@ After `docker compose -f docker-compose.demo.yml up --build`, open <http://local
 8. **Break it and reset**: sign in as Admin, change anything you like (even delete master data), then press **Reset demo data** in the yellow banner. Try *Viewer* too: every action button is gone, and the API would answer 403 anyway (the reset button exists for Admin only).
 
 **What each role can do**: see the [permission matrix](#roles-and-permission-matrix) below (enforced by the API for every endpoint, tested by `AuthorizationMatrixTests`). In short: Viewer reads; Operator does floor work (receive, pick, pack, ship, adjust, transfer, returns); Supervisor also plans orders and receipts, approves adjustments and edits master data; Admin also manages users, roles and deletes.
+
+## The situation and your options
+
+**Where this stands.** The app is a portfolio case study. There is no hosted instance and nothing in this repository claims one exists: you run it yourself, or you host it yourself. Two different things can be hosted, and they are not interchangeable.
+
+### (a) What the browser demo is and is not
+
+- **Is**: the real React UI talking to an in-browser engine that implements the same API contract (same routes, JSON, status codes and messages) and the same business rules as the backend: first-expiry-first-out all-or-nothing allocation, no over-allocation, over-pick rejection and short picks, pack/ship/deliver, approvals for adjustments, transfers, returns, the four roles and the permission matrix. The matrix and the seed dataset are single contract files in [`contracts/`](contracts) that the backend tests and the frontend tests both assert against, so the two implementations cannot drift silently (`UPDATE_CONTRACTS=1 dotnet test --filter Contract` regenerates them from the real backend).
+- **Is not**: a server. One user, one browser, one device: data is per browser profile, clearing site data wipes it, a private window starts fresh. No real authentication (picking a role is the login), no JWT, no PostgreSQL, no migrations, no concurrency between users, no rate limiting, no audit of who did what beyond the ledger. It is a simulation to let anyone try the product, not a deployment of the backend.
+- **Known differences from the real backend**: document numbers skip a number that is already taken (the backend would answer 409 and ask to retry); foreign-key and unique-key violations return the same 409 message, but only the constraints listed in the code are modelled; self-registration is always off; enum filters and validation messages follow the API's wording but not every ASP.NET model-binding edge case; timestamps use the browser clock.
+- Storage: one JSON document under the key `wms-browser-demo:v1` (about 0.1 MB at start; the 5 MB `localStorage` limit would take thousands of operations). If the browser refuses a write, the demo keeps working from memory and shows a warning in the banner. A new demo version with a different schema or dataset resets saved data (with a notice) unless a migration exists.
+
+### Hosting the real thing
+
+Honest trade-offs, cheapest first. Prices and free tiers change often: check each provider's current page before relying on them.
+
+**1. Static browser demo on any static host (Vercel, Netlify, GitHub Pages, Cloudflare Pages, any web server).** No server, no database, no secrets. Cost: free tiers are common. Trade-off: it is the simulation above, not the real stack.
+
+```bash
+cd frontend && npm ci && npm run build:browser-demo     # output: frontend/dist-browser-demo
+```
+
+Upload that folder; no environment variables are needed. It needs a **single-page-app fallback** (every unknown path serves `index.html`), because the router uses real URLs:
+
+- **Vercel**: Output Directory `frontend/dist-browser-demo` (Build Command `cd frontend && npm ci && npm run build:browser-demo`) and one rewrite `/(.*)` to `/index.html` set in the project settings, or in a `vercel.json` you add in your own fork (none is committed here on purpose).
+- **Netlify / Cloudflare Pages**: the build already writes `_redirects` with `/* /index.html 200`.
+- **GitHub Pages**: the build writes `404.html` (a copy of `index.html`). For a project page served under `/<repo>/`, build with `VITE_BASE_PATH=/<repo>/ npm run build:browser-demo`.
+- **nginx / any server**: `try_files $uri /index.html;`.
+
+CI builds this folder on every push and attaches it to the workflow run as the `browser-demo-dist` artifact (nothing is deployed).
+
+**2. The full stack: API container + managed PostgreSQL + static web.** Real ASP.NET API, real database, real authentication, many users. Trade-offs: you operate a server and a database (updates, backups, secrets, abuse), and free tiers sleep, have storage limits, or expire.
+
+- **API**: build `backend/Dockerfile`. Run it on Render, Railway, Fly.io, or a small VPS with `docker compose` (the repository's `docker-compose.yml` already wires the database, API and nginx).
+- **Database**: PostgreSQL 16 from Neon, Supabase, Railway or Render (managed, with backups on paid plans), or the compose database on your own VPS.
+- **Web**: the normal `npm run build` output on a static host (set `VITE_API_URL` to the API's public URL at build time and list that site in `AllowedOrigins`), or the nginx image from `frontend/Dockerfile`, which proxies `/api` so no CORS is needed.
+
+Environment variables (names only, set them in the host's secret store, never in git):
+
+| Variable | Purpose |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | Npgsql connection string of the managed database |
+| `Jwt__Key` | Signing key, 32+ random characters (`openssl rand -base64 48`); the API refuses placeholders |
+| `AllowedOrigins__0` (`__1`, ...) | CORS allow-list: the exact origin(s) of the web app. This is the setting's real name in this project (`Cors__AllowedOrigins` does not exist); leave empty when the proxy serves both |
+| `Database__MigrateOnStartup` | `true` on the first deploy so the schema is created; afterwards optional |
+| `Seed__AdminPassword` | Creates the first administrator (12+ characters) when no user exists; optional `Seed__AdminUsername`, `Seed__AdminEmail` |
+| `Seed__DemoData` | Optional: a small fictional warehouse and products (no demo accounts outside Development) |
+| `Demo__Enabled`, `Demo__Password` | Optional public-demo mode of the full stack: four public accounts, the rich dataset, an Admin *Reset demo data* action |
+
+Things to plan for:
+
+- **Public demo of the full stack**: with `Demo__Enabled=true` the accounts and password are public by design and any Admin can reset everything. The reset is rate limited per instance (`Demo__ResetPermitLimit` / `Demo__ResetWindowSeconds`, default 3 per 5 minutes) and nothing resets automatically; add a scheduled reset (cron calling `--reset-demo`) and a login rate limit if you expose it. Never put real data in a public demo.
+- **TLS**: terminate HTTPS at the platform (Render, Railway, Fly.io and Vercel/Netlify do) or with a reverse proxy such as Caddy or Traefik on a VPS. The compose stack does not do it.
+- **Backups**: managed databases offer snapshots (often paid); on a VPS schedule `pg_dump` to storage you control. A demo database can simply be re-seeded.
+- **Cost**: roughly free for the static demo, free-to-low for a sleeping hobby API plus a free database tier, a few dollars a month for an always-on small API and database, or one small VPS running everything. Free database tiers may pause or delete idle data. Treat all numbers as a starting point.
+- **Abuse**: the API rate limits login and registration; a public instance still needs a cap on request size, monitoring, and a plan for someone filling it with junk (the reset above).
+
+### (c) Which option should I use?
+
+| I want to... | Use |
+|---|---|
+| Let anyone try the product from a link, at no cost, with nothing to maintain | **Static browser demo** (option 1) |
+| Show real architecture: API, PostgreSQL, JWT, migrations, several users at once | **Full stack** (option 2), ideally with `Demo__Enabled` and a scheduled reset |
+| Try it myself right now | Browser demo locally (`npm run dev:browser-demo`) or `docker compose -f docker-compose.demo.yml up --build` |
+| Run it for a real team | Full stack with managed PostgreSQL, TLS, backups and your own secrets; read [Known limitations](#known-limitations) first |
+| Let reviewers read the code without running anything | The repository and the screenshots below |
 
 ## Why
 
@@ -92,7 +184,8 @@ React 19 + Vite  --/api-->  ASP.NET Core 9 Web API  --EF Core 8-->  PostgreSQL 1
 ```
 backend/    ASP.NET Core API: Controllers, Services (business rules), Mapping (explicit DTO mappers),
             Security (roles, policies, JWT settings), Data (DbContext, migrations, seeder)
-frontend/   React SPA: pages, shared UI (modal, toasts, data states), auth context, API client,
+contracts/  Shared JSON contracts (permission matrix, demo dataset) asserted by backend and browser-demo tests
+frontend/   React SPA (src/browser-demo: the in-browser API for the static demo): pages, shared UI (modal, toasts, data states), auth context, API client,
             Vitest tests next to the code, Playwright end-to-end test in e2e/
 tests/      xUnit: unit, workflow, concurrency, authorization matrix, security and migration tests
 docs/       API reference, user manual, original specification, ERD, screenshots
@@ -169,19 +262,22 @@ Development applies pending migrations on startup. Elsewhere the API fails fast 
 ## Tests
 
 ```bash
-dotnet test WmsDistributionCenter.sln        # backend: 107 xUnit tests
+dotnet test WmsDistributionCenter.sln        # backend: 111 xUnit tests
 cd frontend
-npm run lint && npm test && npm run build    # 102 Vitest + Testing Library tests
+npm run lint && npm run typecheck && npm test && npm run build    # Vitest + Testing Library (incl. the browser-demo engine)
+npm run build:browser-demo && npm run check:bundle  # static demo build + bundle check
+npm run test:e2e:browser-demo                # Playwright against the static browser-demo build (builds and serves it on :5176)
 npm run test:e2e                             # 2 Playwright tests, needs the API and web app running (see below)
 npm run test:e2e:demo                        # 5 Playwright tests against a running demo stack (E2E_BASE_URL, default :5174)
 ./scripts/secret-scan.sh                     # run before every push
 ```
 
-- **Backend (107)**: every workflow (receive, allocate, pick, pack, ship, deliver, cancel, adjust, transfer, return), over-pick and over-allocation protection, an optimistic-concurrency test and a 6-way parallel-allocation test, the authorization matrix (every endpoint x every role), JWT validation, seeding rules, CORS, rate limiting, revoked tokens, health endpoints, migration drift, and a full warehouse cycle across roles through HTTP. They use the in-memory EF provider plus the real ASP.NET pipeline.
-- **Frontend (102)**: each page with loading, empty, error and permission states and its create/confirm flows, the generic CRUD page, login, sidebar visibility, and the permission helpers.
+- **Backend (111, incl. 4 contract tests)**: every workflow (receive, allocate, pick, pack, ship, deliver, cancel, adjust, transfer, return), over-pick and over-allocation protection, an optimistic-concurrency test and a 6-way parallel-allocation test, the authorization matrix (every endpoint x every role), JWT validation, seeding rules, CORS, rate limiting, revoked tokens, health endpoints, migration drift, and a full warehouse cycle across roles through HTTP. They use the in-memory EF provider plus the real ASP.NET pipeline.
+- **Frontend (146: 102 app + 44 browser-demo)**: each page with loading, empty, error and permission states and its create/confirm flows, the generic CRUD page, login, sidebar visibility, and the permission helpers.
 - **Demo mode (backend 12, frontend 8, e2e 5)**: the demo endpoint is off by default and in Production/Development/Testing profiles, creates no accounts or data when off, reset is 404 when off and 401/403/200 for anonymous/other roles/Admin, rate limited (429 + `Retry-After`), the reset restores the dataset and repairs the accounts while the admin's session stays valid, every workflow state is seeded and the stock bookkeeping is consistent, each role signs in with its own permissions, the API refuses to start in demo mode without a password; the login panel and banner only render in demo mode; Playwright covers the panel, every order state, a viewer, allocate/pick/pack, receive and reset against the real demo stack.
 - **End to end (2 + 5 demo)**: one Playwright run through the browser: receive, put away, create order, allocate, pick, pack, ship, deliver, adjust, transfer, return, then check the ledger; plus a viewer who sees no actions. Locally: start the API and `npm run dev`, then `npx playwright install chromium` (or `PW_CHANNEL=chrome` to use an installed Chrome) and `npm run test:e2e`. The same test passes against the Docker stack with `E2E_BASE_URL=http://localhost:5174 E2E_DEMO_PASSWORD=<ADMIN_PASSWORD>`.
-- **CI** (`.github/workflows/ci.yml`): backend tests and a vulnerability audit, frontend lint/test/build, the Playwright test against a real PostgreSQL service, the demo Playwright tests against `docker-compose.demo.yml` (the actual one-command path), and the secret scan.
+- **Browser demo**: Vitest drives the engine through the same HTTP-shaped interface the UI uses (every workflow, every endpoint x every role from `contracts/permission-matrix.json`, reset, storage versioning and migration, quota and blocked-storage handling, no network calls); backend tests assert the same two contract files (`contracts/`), so a rule or seed change on one side fails the other; Playwright runs the static build (login as each role, receive-to-ship, reload persistence, reset, no request leaves the page origin). A bundle check proves the normal build contains none of the adapter.
+- **CI** (`.github/workflows/ci.yml`): backend tests and a vulnerability audit, frontend lint/test/build, the Playwright test against a real PostgreSQL service, the demo Playwright tests against `docker-compose.demo.yml` (the actual one-command path), a `browser-demo` job (engine tests, static build, bundle check, Playwright on the static files, `dist` uploaded as an artifact, never deployed), and the secret scan.
 
 ## Security
 
@@ -193,6 +289,7 @@ npm run test:e2e:demo                        # 5 Playwright tests against a runn
 
 ## Known limitations
 
+- **The browser demo is a simulation** (see [The situation and your options](#the-situation-and-your-options)).
 - **The demo is not a hosted service.** There is no public URL: you run it yourself (Docker, Codespaces or `scripts/demo.sh`). Do not expose a demo stack to the internet with real data or as a shared environment: the accounts and password are public and any Admin can reset everything. Reset budget is per instance (3 per 5 minutes by default), and nothing resets automatically; restarting the containers keeps the data (`down -v` wipes it).
 - **No Docker-free database.** The app uses PostgreSQL (jsonb, migrations), so `scripts/demo.sh` still runs the database in Docker; there is no embedded database mode. Codespaces needs a GitHub account and its first start takes a few minutes.
 - **Demo data is a snapshot in time**: documents are stamped with the moment of seeding (dates and numbers like `ORD-<today>-0001`), there are no customers as a separate entity (the order *destination* plays that role), and only one warehouse has real depth.

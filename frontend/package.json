@@ -11,7 +11,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:demo": "playwright test -c playwright.demo.config.js"
+    "test:e2e:demo": "playwright test -c playwright.demo.config.js",
+    "dev:browser-demo": "vite --mode browser-demo",
+    "build:browser-demo": "vite build --mode browser-demo && node scripts/postbuild-browser-demo.mjs",
+    "preview:browser-demo": "vite preview --mode browser-demo --outDir dist-browser-demo --port 5176 --strictPort",
+    "typecheck": "tsc -p tsconfig.json",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "test:e2e:browser-demo": "playwright test -c playwright.browser-demo.config.js"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
@@ -37,6 +43,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "jsdom": "^30.1.2",
+    "typescript": "^5.9.3",
     "vite": "^8.0.12",
     "vitest": "^5.0.4"
   }

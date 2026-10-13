@@ -26,3 +26,5 @@ docs/output/
 docs/scripts/
 docs/*.docx
 docs/screenshots-legacy/
+dist-browser-demo/
+!.env.browser-demo
