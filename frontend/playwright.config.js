@@ -6,6 +6,7 @@ import process from 'node:process';
 export default defineConfig({
   testDir: './e2e',
   testMatch: /.*\.spec\.js/,
+  testIgnore: /demo\//, // the demo specs need demo mode: see playwright.demo.config.js
   timeout: 90_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,

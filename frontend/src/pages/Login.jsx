@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Warehouse, Eye, EyeOff } from 'lucide-react';
+import { Warehouse, Eye, EyeOff, FlaskConical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import useDemoInfo from '../hooks/useDemoInfo';
 import { errorMessage } from '../services/api';
+import { demoPassword } from '../services/demo';
 import './Login.css';
 
 export default function Login() {
@@ -12,13 +14,19 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const demo = useDemoInfo();
+  const sharedPassword = demoPassword();
 
   async function handleSubmit(e) {
     e.preventDefault();
+    await signIn(form.username, form.password);
+  }
+
+  async function signIn(username, password) {
     setError('');
     setLoading(true);
     try {
-      await login(form.username, form.password);
+      await login(username, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.status === 401 ? 'Invalid username or password' : errorMessage(err, 'Sign in failed'));
@@ -77,10 +85,29 @@ export default function Login() {
             {loading ? <span className="spinner"></span> : 'Sign In'}
           </button>
 
-          {import.meta.env.DEV && (
+          {import.meta.env.DEV && !demo.enabled && (
             <p className="login-hint">Local demo: admin / Demo!Pass123 (Development seed only)</p>
           )}
         </form>
+
+        {demo.enabled && (
+          <section className="demo-panel" aria-label="Demo mode">
+            <h2><FlaskConical size={15} aria-hidden="true" /> Demo mode</h2>
+            <p>This is a public demo with fictional data and shared accounts. Pick a role to explore, no sign-up needed.</p>
+            {sharedPassword ? (
+              <div className="demo-buttons">
+                {demo.accounts.map((a) => (
+                  <button key={a.role} type="button" className="btn btn-secondary btn-sm" disabled={loading}
+                    onClick={() => signIn(a.username, sharedPassword)}>
+                    Sign in as {a.role}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="demo-note">User names: {demo.accounts.map((a) => a.username).join(', ')}. The password is listed in the README.</p>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
