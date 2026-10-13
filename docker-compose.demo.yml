@@ -1,0 +1,60 @@
+# Public DEMO stack: PostgreSQL + API + web, no setup and no secrets to create.
+#   docker compose -f docker-compose.demo.yml up --build        -> open http://localhost:5174
+#
+# Demo mode is ON: schema migrations run automatically, a fictional warehouse is seeded (products, receipts, orders in every
+# workflow state, adjustments, transfers, returns) and there is one account per role (admin, supervisor, operator, viewer).
+# The demo password is PUBLIC by design (override with DEMO_PASSWORD). The login page shows one-click "Sign in as <role>" buttons.
+# Never put real data in this stack and never expose it to the internet as a production system.
+#   Reset the data:   docker compose -f docker-compose.demo.yml run --rm api --reset-demo      (or Admin -> "Reset demo data")
+#   Start from zero:  docker compose -f docker-compose.demo.yml down -v
+# For a real deployment use docker-compose.yml instead: it never creates demo accounts.
+name: wms-demo
+
+x-demo-password: &demo_password ${DEMO_PASSWORD:-Demo!Pass123}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wms_demo
+      POSTGRES_USER: wms_demo
+      POSTGRES_PASSWORD: wms_demo_db   # throwaway demo value
+    ports:
+      - "127.0.0.1:${DEMO_DB_PORT:-5334}:5432"   # loopback only; used by scripts/demo.sh (API and web run on the host)
+    volumes:
+      - wms_demo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wms_demo -d wms_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=wms_demo;Username=wms_demo;Password=wms_demo_db
+      Database__MigrateOnStartup: "true"
+      ForwardedHeaders__Enabled: "true"
+      RateLimiting__AuthPermitLimit: "60"       # many one-click sign-ins from one NAT address
+      Demo__Enabled: "true"
+      Demo__Password: *demo_password
+      # No Jwt__Key: demo mode generates an ephemeral signing key at startup (sessions end when the API restarts).
+    ports:
+      - "127.0.0.1:${API_PORT:-5301}:8080"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_DEMO_PASSWORD: *demo_password
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5174}:8080"
+
+volumes:
+  wms_demo_pgdata:

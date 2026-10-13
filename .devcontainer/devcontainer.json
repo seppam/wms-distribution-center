@@ -1,0 +1,17 @@
+{
+  "name": "WMS Distribution Center (demo)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postStartCommand": "docker compose -f docker-compose.demo.yml up -d --build",
+  "forwardPorts": [5174, 5301],
+  "portsAttributes": {
+    "5174": { "label": "WMS web app (demo)", "onAutoForward": "openBrowser" },
+    "5301": { "label": "WMS API (Swagger is off, see /healthz)", "onAutoForward": "silent" }
+  },
+  "hostRequirements": { "cpus": 2, "memory": "6gb" },
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] }
+  }
+}

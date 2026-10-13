@@ -61,6 +61,15 @@ curl -s -X POST localhost:5300/api/outboundorders/<orderId>/start-picking -H "au
 | POST | `/api/auth/login` | Anyone (rate limited) | Sign in, returns a JWT and the user |
 | POST | `/api/auth/register` | Anyone (rate limited) | Self-registration (Viewer role); returns 404 unless Auth:AllowSelfRegistration is true |
 
+### Demo mode
+
+Inert unless `Demo__Enabled=true` (see the README, "Try it").
+
+| Method | Route | Who | Notes |
+|---|---|---|---|
+| GET | `/api/demo-info` | Anyone | `{ "enabled": false }`, or `{ "enabled": true, "accounts": [{ "role", "username" }] }` in demo mode. Never contains a password |
+| POST | `/api/demo/reset` | Admin | Restores the seeded dataset and the four demo accounts. 404 when demo mode is off, 429 with `Retry-After` beyond the reset budget (default 3 per 300 s). The CLI equivalent is `--reset-demo` |
+
 ### Users
 
 | Method | Route | Who | Notes |

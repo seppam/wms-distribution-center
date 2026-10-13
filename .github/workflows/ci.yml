@@ -99,6 +99,54 @@ jobs:
             api.log
             web.log
 
+  e2e-demo:
+    # The documented one-command path: docker compose demo stack, then the demo Playwright tests against it
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start the demo stack (db + api + web, demo mode)
+        run: docker compose -f docker-compose.demo.yml up --build -d --wait --wait-timeout 300
+      - name: Install frontend dependencies and the Playwright browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Demo end-to-end tests (Playwright)
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:5174
+        run: npm run test:e2e:demo
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.demo.yml logs --no-color --tail 200
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-demo-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f docker-compose.demo.yml down -v
+
+  devcontainer-config:
+    # Cheap validation of the Codespaces configuration (the full build needs privileged Docker-in-Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npx --yes @devcontainers/cli@0.80.0 read-configuration --workspace-folder .
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
