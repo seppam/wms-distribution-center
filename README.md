@@ -8,6 +8,10 @@ A full-stack **Warehouse Management System** for a distribution center. It cover
 
 ## Try it
 
+**Live browser demo: https://wms-distribution-center.vercel.app**
+
+![Live browser demo with the demo notice](docs/screenshots/13-live-demo-notice.webp)
+
 Everything below runs a **demo**: fictional data, one shared public account per role, and one-click sign-in buttons on the login page. Nothing to sign up for, no secrets to create.
 
 ### Browser demo: no Docker, no database, no host
